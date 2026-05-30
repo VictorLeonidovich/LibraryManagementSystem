@@ -10,6 +10,7 @@ import java.util.List;
 
 @Slf4j
 @Service
+@Deprecated
 public class BookService {
     private final BookRepository bookRepository;
 
