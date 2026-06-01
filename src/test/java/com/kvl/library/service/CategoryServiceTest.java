@@ -10,6 +10,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Collections;
 import java.util.List;
@@ -40,8 +44,8 @@ class CategoryServiceTest {
     }
 
     @Test
-    @DisplayName("findAllCategories should return list of categories")
-    void findAllCategories_ShouldReturnList() {
+    @DisplayName("findAllCategories without parameters should return list of categories")
+    void findAllCategories_WithoutParameters_ShouldReturnList() {
         List<Category> expectedCategories = Collections.singletonList(testCategory);
         when(categoryRepository.findAll()).thenReturn(expectedCategories);
 
@@ -49,6 +53,40 @@ class CategoryServiceTest {
 
         assertThat(actualCategories).isNotEmpty().hasSize(1).contains(testCategory);
         verify(categoryRepository, times(1)).findAll();
+    }
+
+    @Test
+    @DisplayName("findAllCategories with pageable should return page of categories")
+    void findAllCategories_WithPageable_ShouldReturnPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        List<Category> categoryList = Collections.singletonList(testCategory);
+        Page<Category> expectedPage = new PageImpl<>(categoryList, pageable, categoryList.size());
+
+        when(categoryRepository.findAll(pageable)).thenReturn(expectedPage);
+
+        Page<Category> actualPage = categoryService.findAllCategories(pageable);
+
+        assertThat(actualPage).isNotEmpty();
+        assertThat(actualPage.getTotalElements()).isEqualTo(1);
+        assertThat(actualPage.getContent()).contains(testCategory);
+        verify(categoryRepository, times(1)).findAll(pageable);
+    }
+
+    @Test
+    @DisplayName("searchCategoriesByName should return page of filtered categories")
+    void searchCategoriesByName_ShouldReturnFilteredPage() {
+        String searchName = "Фант";
+        Pageable pageable = PageRequest.of(0, 10);
+        List<Category> categoryList = Collections.singletonList(testCategory);
+        Page<Category> expectedPage = new PageImpl<>(categoryList, pageable, categoryList.size());
+
+        when(categoryRepository.findByNameContainingIgnoreCase(searchName, pageable)).thenReturn(expectedPage);
+
+        Page<Category> actualPage = categoryService.searchCategoriesByName(searchName, pageable);
+
+        assertThat(actualPage).isNotEmpty();
+        assertThat(actualPage.getContent().get(0).getName()).contains(searchName);
+        verify(categoryRepository, times(1)).findByNameContainingIgnoreCase(searchName, pageable);
     }
 
     @Test
@@ -86,13 +124,28 @@ class CategoryServiceTest {
     }
 
     @Test
-    @DisplayName("updateCategory should save updated category successfully")
-    void updateCategory_ShouldSaveCategory() {
+    @DisplayName("updateCategory should save updated category when category exists")
+    void updateCategory_WhenExists_ShouldSaveCategory() {
+        when(categoryRepository.existsById(testCategory.getId())).thenReturn(true);
         when(categoryRepository.save(testCategory)).thenReturn(testCategory);
 
         categoryService.updateCategory(testCategory);
 
+        verify(categoryRepository, times(1)).existsById(testCategory.getId());
         verify(categoryRepository, times(1)).save(testCategory);
+    }
+
+    @Test
+    @DisplayName("updateCategory should throw EntityNotFoundException when category does not exist")
+    void updateCategory_WhenNotExists_ShouldThrowException() {
+        when(categoryRepository.existsById(testCategory.getId())).thenReturn(false);
+
+        assertThatThrownBy(() -> categoryService.updateCategory(testCategory))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("Category with ID " + testCategory.getId() + " was not found");
+
+        verify(categoryRepository, times(1)).existsById(testCategory.getId());
+        verify(categoryRepository, never()).save(any(Category.class));
     }
 
     @Test

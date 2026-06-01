@@ -16,6 +16,10 @@
         <div class="card-body">
             <form action="#" th:action="@{/save-category/{id}(id=${category.id})}" th:object="${category}"
                   method="post">
+
+                <!-- КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Сохраняем ID категории при отправке POST-запроса -->
+                <input type="hidden" th:field="*{id}">
+
                 <div class="row">
                     <div class="form-group col-md-8">
                         <label for="name" class="col-form-label">Category Name</label>
@@ -27,7 +31,7 @@
                          th:errors="*{name}">
                         Ошибка валидации
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 mt-3">
                         <input type="submit" class="btn btn-primary" value=" Submit ">
                     </div>
                 </div>
