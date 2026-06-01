@@ -16,6 +16,10 @@
         <div class="card-body">
             <form action="#" th:action="@{/save-author/{id}(id=${author.id})}" th:object="${author}"
                   method="post">
+
+                <!-- Передаем ID автора при отправке формы -->
+                <input type="hidden" th:field="*{id}">
+
                 <div class="row">
                     <div class="form-group col-md-8">
                         <label for="name" class="col-form-label">Author Name</label>
@@ -28,7 +32,7 @@
                         Ошибка валидации
                     </div>
                     <div class="form-group col-md-8">
-                        <label for="name" class="col-form-label">Author Description</label>
+                        <label for="description" class="col-form-label">Author Description</label>
                         <input type="text" th:field="*{description}" class="form-control" id="description"
                                placeholder="Author Description">
                     </div>
@@ -37,7 +41,7 @@
                          th:errors="*{description}">
                         Ошибка валидации
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 mt-3"> <!-- Добавлен небольшой отступ сверху для кнопки -->
                         <input type="submit" class="btn btn-primary" value=" Submit ">
                     </div>
                 </div>

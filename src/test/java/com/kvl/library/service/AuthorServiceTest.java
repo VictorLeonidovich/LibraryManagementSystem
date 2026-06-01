@@ -10,6 +10,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Collections;
 import java.util.List;
@@ -43,15 +47,37 @@ class AuthorServiceTest {
     }
 
     @Test
-    @DisplayName("findAllAuthors should return list of authors")
-    void findAllAuthors_ShouldReturnList() {
-        List<Author> expectedAuthors = Collections.singletonList(testAuthor);
-        when(authorRepository.findAll()).thenReturn(expectedAuthors);
+    @DisplayName("findAllAuthors should return page of authors")
+    void findAllAuthors_ShouldReturnPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        List<Author> authorList = Collections.singletonList(testAuthor);
+        Page<Author> expectedPage = new PageImpl<>(authorList, pageable, authorList.size());
 
-        List<Author> actualAuthors = authorService.findAllAuthors();
+        when(authorRepository.findAll(pageable)).thenReturn(expectedPage);
 
-        assertThat(actualAuthors).isNotEmpty().hasSize(1).contains(testAuthor);
-        verify(authorRepository, times(1)).findAll();
+        Page<Author> actualPage = authorService.findAllAuthors(pageable);
+
+        assertThat(actualPage).isNotEmpty();
+        assertThat(actualPage.getTotalElements()).isEqualTo(1);
+        assertThat(actualPage.getContent()).contains(testAuthor);
+        verify(authorRepository, times(1)).findAll(pageable);
+    }
+
+    @Test
+    @DisplayName("searchAuthorsByName should return page of filtered authors")
+    void searchAuthorsByName_ShouldReturnFilteredPage() {
+        String searchName = "Толстой";
+        Pageable pageable = PageRequest.of(0, 10);
+        List<Author> authorList = Collections.singletonList(testAuthor);
+        Page<Author> expectedPage = new PageImpl<>(authorList, pageable, authorList.size());
+
+        when(authorRepository.findByNameContainingIgnoreCase(searchName, pageable)).thenReturn(expectedPage);
+
+        Page<Author> actualPage = authorService.searchAuthorsByName(searchName, pageable);
+
+        assertThat(actualPage).isNotEmpty();
+        assertThat(actualPage.getContent().get(0).getName()).contains(searchName);
+        verify(authorRepository, times(1)).findByNameContainingIgnoreCase(searchName, pageable);
     }
 
     @Test
@@ -89,13 +115,28 @@ class AuthorServiceTest {
     }
 
     @Test
-    @DisplayName("updateAuthor should save updated author successfully")
-    void updateAuthor_ShouldSaveAuthor() {
+    @DisplayName("updateAuthor should save updated author when author exists")
+    void updateAuthor_WhenExists_ShouldSaveAuthor() {
+        when(authorRepository.existsById(testAuthor.getId())).thenReturn(true);
         when(authorRepository.save(testAuthor)).thenReturn(testAuthor);
 
         authorService.updateAuthor(testAuthor);
 
+        verify(authorRepository, times(1)).existsById(testAuthor.getId());
         verify(authorRepository, times(1)).save(testAuthor);
+    }
+
+    @Test
+    @DisplayName("updateAuthor should throw EntityNotFoundException when author does not exist")
+    void updateAuthor_WhenNotExists_ShouldThrowException() {
+        when(authorRepository.existsById(testAuthor.getId())).thenReturn(false);
+
+        assertThatThrownBy(() -> authorService.updateAuthor(testAuthor))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("Author with ID " + testAuthor.getId() + " was not found");
+
+        verify(authorRepository, times(1)).existsById(testAuthor.getId());
+        verify(authorRepository, never()).save(any(Author.class));
     }
 
     @Test

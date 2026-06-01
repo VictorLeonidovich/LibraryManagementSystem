@@ -7,13 +7,13 @@ import com.kvl.library.mapper.AuthorMapper;
 import com.kvl.library.service.AuthorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/authors")
@@ -24,11 +24,19 @@ public class AuthorRestController {
     private final AuthorMapper authorMapper;
 
     @GetMapping
-    public ResponseEntity<List<AuthorResponseDTO>> getAllAuthors() {
-        List<AuthorResponseDTO> authors = authorService.findAllAuthors().stream()
-                .map(authorMapper::toResponseDTO)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(authors);
+    public ResponseEntity<Page<AuthorResponseDTO>> getAllAuthors(
+            @RequestParam(required = false) String name,
+            @PageableDefault(size = 10, sort = "name") Pageable pageable) {
+
+        Page<Author> authorsPage;
+        if (name != null && !name.trim().isEmpty()) {
+            authorsPage = authorService.searchAuthorsByName(name, pageable);
+        } else {
+            authorsPage = authorService.findAllAuthors(pageable);
+        }
+
+        Page<AuthorResponseDTO> responsePage = authorsPage.map(authorMapper::toResponseDTO);
+        return ResponseEntity.ok(responsePage);
     }
 
     @GetMapping("/{id}")
