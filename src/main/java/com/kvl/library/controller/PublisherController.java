@@ -3,31 +3,48 @@ package com.kvl.library.controller;
 import com.kvl.library.entity.Publisher;
 import com.kvl.library.service.PublisherService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
+@RequiredArgsConstructor
 public class PublisherController {
 
-    @Autowired
-    PublisherService publisherService;
+    private final PublisherService publisherService;
 
     @GetMapping("/publishers")
-    public String findAllPublishers(Model model) {
-        model.addAttribute("publishers", publisherService.findAllPublishers());
+    public String findAllPublishers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            Model model) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+        Page<Publisher> publishersPage = publisherService.findAllPublishers(pageable);
+
+        // Передаем контент и метаданные пагинации в Thymeleaf
+        model.addAttribute("publishers", publishersPage.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", publishersPage.getTotalPages());
+        model.addAttribute("totalItems", publishersPage.getTotalElements());
+        model.addAttribute("size", size);
+
         return "publishers";
     }
 
     @GetMapping("/remove-publisher/{id}")
-    public String removePublisher(@PathVariable Long id, Model model) {
+    public String removePublisher(@PathVariable Long id) {
         publisherService.deletePublisher(id);
-        model.addAttribute("publishers", publisherService.findAllPublishers());
-        return "publishers";
+        return "redirect:/publishers";
     }
 
     @GetMapping("/update-publisher/{id}")
@@ -37,27 +54,25 @@ public class PublisherController {
     }
 
     @PostMapping("/save-publisher/{id}")
-    public String savePublisher(@PathVariable Long id, @Valid Publisher publisher, BindingResult bindingResult, Model model) {
+    public String savePublisher(@PathVariable Long id, @Valid Publisher publisher, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             return "update-publisher";
         }
         publisherService.updatePublisher(publisher);
-        model.addAttribute("publishers", publisherService.findAllPublishers());
         return "redirect:/publishers";
     }
 
     @GetMapping("/add-publisher")
-    public String addPublisher(@Valid Publisher publisher, BindingResult bindingResult) {
+    public String addPublisher(Publisher publisher) {
         return "add-publisher";
     }
 
     @PostMapping("/save-publisher")
-    public String savePublisher(@Valid Publisher publisher, BindingResult bindingResult, Model model) {
+    public String savePublisher(@Valid Publisher publisher, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             return "add-publisher";
         }
         publisherService.createPublisher(publisher);
-        model.addAttribute("publishers", publisherService.findAllPublishers());
         return "redirect:/publishers";
     }
 }
