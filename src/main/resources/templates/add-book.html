@@ -17,7 +17,7 @@
             <form action="#" th:action="@{/save-book}" th:object="${book}" method="post">
                 <div class="row">
                     <div class="form-group col-md-8">
-                        <label for="name" class="col-form-label">ISBN</label>
+                        <label for="isbn" class="col-form-label">ISBN</label>
                         <input type="text" th:field="*{isbn}" class="form-control" id="isbn" placeholder="ISBN">
                     </div>
                     <div class="form-group col-md-8">
@@ -25,32 +25,34 @@
                         <input type="text" th:field="*{name}" class="form-control" id="name" placeholder="Book Name">
                     </div>
                     <div class="form-group col-md-8">
-                        <label for="name" class="col-form-label">Book Description</label>
+                        <label for="description" class="col-form-label">Book Description</label>
                         <input type="text" th:field="*{description}" class="form-control" id="description"
                                placeholder="Book Description">
                     </div>
+
+                    <!-- Добавлен выбор нескольких элементов (multiple) для коллекций Set -->
                     <div class="form-group col-md-8">
-                        <label for="categories" class="col-form-label">Category</label>
-                        <select type="text" th:field="*{categories}" class="form-control">
+                        <label for="categories" class="col-form-label">Categories (Hold Ctrl to select multiple)</label>
+                        <select th:field="*{categories}" class="form-control" id="categories" multiple="multiple">
                             <option th:each="category: ${categories}" th:value="${category.id}"
                                     th:text="${category.name}"></option>
                         </select>
                     </div>
                     <div class="form-group col-md-8">
-                        <label for="author" class="col-form-label">Author</label>
-                        <select type="text" th:field="*{authors}" class="form-control">
+                        <label for="authors" class="col-form-label">Authors (Hold Ctrl to select multiple)</label>
+                        <select th:field="*{authors}" class="form-control" id="authors" multiple="multiple">
                             <option th:each="author: ${authors}" th:value="${author.id}"
                                     th:text="${author.name}"></option>
                         </select>
                     </div>
                     <div class="form-group col-md-8">
-                        <label for="publisher" class="col-form-label">Publisher</label>
-                        <select type="text" th:field="*{publishers}" class="form-control">
+                        <label for="publishers" class="col-form-label">Publishers (Hold Ctrl to select multiple)</label>
+                        <select th:field="*{publishers}" class="form-control" id="publishers" multiple="multiple">
                             <option th:each="publisher: ${publishers}" th:value="${publisher.id}"
                                     th:text="${publisher.name}"></option>
                         </select>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 mt-3">
                         <input type="submit" class="btn btn-primary" value=" Submit ">
                     </div>
                 </div>

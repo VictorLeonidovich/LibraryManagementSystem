@@ -10,14 +10,15 @@ import com.kvl.library.service.CategoryService;
 import com.kvl.library.service.PublisherService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/books")
@@ -30,12 +31,21 @@ public class BookRestController {
     private final PublisherService publisherService;
     private final BookMapper bookMapper;
 
+    // GET /api/v1/books?keyword=Война&page=0&size=10&sort=name,asc
     @GetMapping
-    public ResponseEntity<List<BookResponseDTO>> getAllBooks() {
-        List<BookResponseDTO> books = bookService.findAllBooks().stream()
-                .map(bookMapper::toResponseDTO)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(books);
+    public ResponseEntity<Page<BookResponseDTO>> getAllBooks(
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 10, sort = "name") Pageable pageable) {
+
+        Page<Book> booksPage;
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            booksPage = bookService.searchBooks(keyword, pageable);
+        } else {
+            booksPage = bookService.findAllBooks(pageable);
+        }
+
+        Page<BookResponseDTO> responsePage = booksPage.map(bookMapper::toResponseDTO);
+        return ResponseEntity.ok(responsePage);
     }
 
     @GetMapping("/{id}")
@@ -80,13 +90,13 @@ public class BookRestController {
     // Helper handler to bind relational sets safely
     private void mapRelations(BookRequestDTO dto, Book book) {
         if (dto.getAuthorIds() != null) {
-            dto.getAuthorIds().forEach(id -> book.addAuthor(authorService.findAuthorById(id)));
+            dto.getAuthorIds().forEach(authorId -> book.addAuthor(authorService.findAuthorById(authorId)));
         }
         if (dto.getCategoryIds() != null) {
-            dto.getCategoryIds().forEach(id -> book.addCategory(categoryService.findCategoryById(id)));
+            dto.getCategoryIds().forEach(categoryId -> book.addCategory(categoryService.findCategoryById(categoryId)));
         }
         if (dto.getPublisherIds() != null) {
-            dto.getPublisherIds().forEach(id -> book.addPublisher(publisherService.findPublisherById(id)));
+            dto.getPublisherIds().forEach(publisherId -> book.addPublisher(publisherService.findPublisherById(publisherId)));
         }
     }
 }

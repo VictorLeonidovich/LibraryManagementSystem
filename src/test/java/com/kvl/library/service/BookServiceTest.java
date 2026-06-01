@@ -11,6 +11,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,8 +26,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@SuppressWarnings("deprecation")
-@Deprecated
 @DisplayName("BookService Unit Tests")
 class BookServiceTest {
 
@@ -40,6 +42,8 @@ class BookServiceTest {
     void setUp() {
         testBook = new Book();
         testBook.setId(bookId);
+        testBook.setName("Война и мир");
+        testBook.setIsbn("978-5-699-12345-6");
     }
 
     @Test
@@ -63,6 +67,40 @@ class BookServiceTest {
 
         assertThat(actualBooks).isEmpty();
         verify(bookRepository, times(1)).findAll();
+    }
+
+    @Test
+    @DisplayName("findAllBooks with pageable should return page of books")
+    void findAllBooks_WithPageable_ShouldReturnPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        List<Book> bookList = Collections.singletonList(testBook);
+        Page<Book> expectedPage = new PageImpl<>(bookList, pageable, bookList.size());
+
+        when(bookRepository.findAll(pageable)).thenReturn(expectedPage);
+
+        Page<Book> actualPage = bookService.findAllBooks(pageable);
+
+        assertThat(actualPage).isNotEmpty();
+        assertThat(actualPage.getTotalElements()).isEqualTo(1);
+        assertThat(actualPage.getContent()).contains(testBook);
+        verify(bookRepository, times(1)).findAll(pageable);
+    }
+
+    @Test
+    @DisplayName("searchBooks should return page of filtered books by name or isbn")
+    void searchBooks_ShouldReturnFilteredPage() {
+        String keyword = "Война";
+        Pageable pageable = PageRequest.of(0, 10);
+        List<Book> bookList = Collections.singletonList(testBook);
+        Page<Book> expectedPage = new PageImpl<>(bookList, pageable, bookList.size());
+
+        when(bookRepository.searchByNameOrIsbn(keyword, pageable)).thenReturn(expectedPage);
+
+        Page<Book> actualPage = bookService.searchBooks(keyword, pageable);
+
+        assertThat(actualPage).isNotEmpty();
+        assertThat(actualPage.getContent().get(0).getName()).contains(keyword);
+        verify(bookRepository, times(1)).searchByNameOrIsbn(keyword, pageable);
     }
 
     @Test
@@ -99,13 +137,28 @@ class BookServiceTest {
     }
 
     @Test
-    @DisplayName("updateBook() should successfully invoke the repository save function to update a book profile")
-    void updateBook_ShouldSaveBookDirectly() {
+    @DisplayName("updateBook() should successfully save updated book when it exists")
+    void updateBook_WhenBookExists_ShouldSaveBook() {
+        when(bookRepository.existsById(testBook.getId())).thenReturn(true);
         when(bookRepository.save(any(Book.class))).thenReturn(testBook);
 
         bookService.updateBook(testBook);
 
+        verify(bookRepository, times(1)).existsById(testBook.getId());
         verify(bookRepository, times(1)).save(testBook);
+    }
+
+    @Test
+    @DisplayName("updateBook() should throw EntityNotFoundException when book does not exist")
+    void updateBook_WhenBookDoesNotExist_ShouldThrowException() {
+        when(bookRepository.existsById(testBook.getId())).thenReturn(false);
+
+        assertThatThrownBy(() -> bookService.updateBook(testBook))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("Book with ID " + testBook.getId() + " was not found");
+
+        verify(bookRepository, times(1)).existsById(testBook.getId());
+        verify(bookRepository, never()).save(any(Book.class));
     }
 
     @Test

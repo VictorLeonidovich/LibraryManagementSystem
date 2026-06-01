@@ -9,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
 public class AuthorService {
@@ -16,6 +18,12 @@ public class AuthorService {
 
     public AuthorService(AuthorRepository authorRepository) {
         this.authorRepository = authorRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Author> findAllAuthors() {
+        log.info("Fetching all authors as a list for relational select dropdowns");
+        return authorRepository.findAll();
     }
 
     // 1. Пагинация для общего списка (readOnly транзакция)
