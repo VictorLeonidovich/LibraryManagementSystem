@@ -3,7 +3,7 @@ package com.kvl.library.controller;
 import com.kvl.library.dto.UserLoginDto;
 import com.kvl.library.dto.UserRegisterDto;
 import com.kvl.library.dto.UserResponseDto;
-import com.kvl.library.model.User;
+import com.kvl.library.entity.User;
 import com.kvl.library.repository.UserRepository;
 import com.kvl.library.security.JwtUtils;
 import jakarta.validation.Valid;

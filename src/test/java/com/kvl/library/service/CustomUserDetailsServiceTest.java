@@ -1,6 +1,6 @@
 package com.kvl.library.service;
 
-import com.kvl.library.model.User;
+import com.kvl.library.entity.User;
 import com.kvl.library.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

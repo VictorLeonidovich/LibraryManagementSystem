@@ -1,6 +1,6 @@
 package com.kvl.library.security;
 
-import com.kvl.library.model.User;
+import com.kvl.library.entity.User;
 import com.kvl.library.repository.UserRepository;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;

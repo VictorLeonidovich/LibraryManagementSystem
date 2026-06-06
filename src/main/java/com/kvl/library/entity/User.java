@@ -1,4 +1,4 @@
-package com.kvl.library.model;
+package com.kvl.library.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;

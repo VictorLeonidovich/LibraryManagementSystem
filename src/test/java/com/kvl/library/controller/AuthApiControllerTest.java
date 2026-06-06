@@ -3,7 +3,7 @@ package com.kvl.library.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kvl.library.dto.UserLoginDto;
 import com.kvl.library.dto.UserRegisterDto;
-import com.kvl.library.model.User;
+import com.kvl.library.entity.User;
 import com.kvl.library.repository.UserRepository;
 import com.kvl.library.security.JwtRequestFilter;
 import com.kvl.library.security.JwtUtils;
