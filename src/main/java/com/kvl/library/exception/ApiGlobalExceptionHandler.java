@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
-@RestControllerAdvice(basePackages = "com.kvl.library.controller")
+@RestControllerAdvice // Убрали привязку к пакету для гибкости
 public class ApiGlobalExceptionHandler {
 
     @ExceptionHandler(EntityNotFoundException.class)
@@ -56,6 +56,22 @@ public class ApiGlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    // Перехват неверного логина или пароля
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<ApiErrorResponse> handleAuthenticationException(org.springframework.security.core.AuthenticationException ex, HttpServletRequest request) {
+        log.warn("Authentication failed: {}", ex.getMessage()); // log.warn вместо логов ошибок уровня ERROR
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .error(HttpStatus.UNAUTHORIZED.getReasonPhrase())
+                .message("Неверное имя пользователя или пароль")
+                .path(request.getRequestURI())
+                .build();
+
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleAllUncaughtExceptions(Exception ex, HttpServletRequest request) {
         log.error("An unexpected error occurred at endpoint {}: ", request.getRequestURI(), ex);
@@ -84,5 +100,21 @@ public class ApiGlobalExceptionHandler {
                 .build();
 
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    // Перехват бизнес-ошибок (например, дубликат юзера), чтобы не отдавать 500 ошибку
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiErrorResponse> handleBusinessExceptions(IllegalArgumentException ex, HttpServletRequest request) {
+        log.error("Business rule violation: {}", ex.getMessage());
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

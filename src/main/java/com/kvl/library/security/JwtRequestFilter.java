@@ -1,9 +1,13 @@
 package com.kvl.library.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,7 +34,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
-        final String username;
+        String username = null;
         final String jwt;
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -39,19 +43,42 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         }
 
         jwt = authHeader.substring(7);
-        username = jwtUtils.extractUsername(jwt);
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+        try {
+            // Именно здесь jjwt выбрасывает исключения, если токен просрочен или подделан.
+            username = jwtUtils.extractUsername(jwt);
 
-            if (jwtUtils.validateToken(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+
+                if (jwtUtils.validateToken(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities()
+                    );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
+            filterChain.doFilter(request, response);
+
+        } catch (ExpiredJwtException e) {
+            // Перехватываем просроченный токен и отдаем клиенту JSON 401
+            handleJwtException(response, HttpStatus.UNAUTHORIZED, "JWT token has expired");
+        } catch (JwtException e) {
+            // Перехватываем невалидную подпись/формат токена и отдаем JSON 400
+            handleJwtException(response, HttpStatus.BAD_REQUEST, "Invalid JWT token signature or format");
         }
-        filterChain.doFilter(request, response);
+    }
+
+    // Кастомный метод для отправки JSON ответа клиенту, так как обычный @RestControllerAdvice не умеет ловить ошибки из фильтров.
+    private void handleJwtException(HttpServletResponse response, HttpStatus status, String message) throws IOException {
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+
+        String jsonBody = String.format("{\"status\": %d, \"error\": \"%s\", \"message\": \"%s\"}",
+                status.value(), status.getReasonPhrase(), message);
+
+        response.getWriter().write(jsonBody);
     }
 }

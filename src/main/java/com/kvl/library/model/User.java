@@ -1,34 +1,44 @@
 package com.kvl.library.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import org.hibernate.proxy.HibernateProxy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "users")
-@Data
+@Getter
+@Setter
+@RequiredArgsConstructor
+@ToString(onlyExplicitlyIncluded = true) // Защищает от циклического вызова связанных сущностей в toString
 public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @ToString.Include // В логи будет выводиться только id и username
     private Long id;
 
     @Column(unique = true, nullable = false)
+    @ToString.Include
     private String username;
 
     @Column(nullable = false)
+    // Пароль исключаем из toString из соображений безопасности
     private String password;
 
     private String role;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Превращаем строку роли в объект, который понимает Spring Security
         return List.of(new SimpleGrantedAuthority(role));
     }
 
@@ -50,5 +60,23 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true; // Аккаунт активен
+    }
+
+    // Безопасный equals для JPA-сущностей, учитывающий прокси-классы Hibernate
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
+        Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
+        if (thisEffectiveClass != oEffectiveClass) return false;
+        User user = (User) o;
+        return getId() != null && Objects.equals(getId(), user.getId());
+    }
+
+    // Безопасный hashCode, возвращающий константное значение для объектов до их сохранения в БД
+    @Override
+    public final int hashCode() {
+        return this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode() : getClass().hashCode();
     }
 }

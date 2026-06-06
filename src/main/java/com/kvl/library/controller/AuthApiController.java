@@ -1,8 +1,12 @@
 package com.kvl.library.controller;
 
+import com.kvl.library.dto.UserLoginDto;
+import com.kvl.library.dto.UserRegisterDto;
+import com.kvl.library.dto.UserResponseDto;
 import com.kvl.library.model.User;
 import com.kvl.library.repository.UserRepository;
 import com.kvl.library.security.JwtUtils;
+import jakarta.validation.Valid;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -35,39 +39,38 @@ public class AuthApiController {
     }
 
     @PostMapping("/login")
-    public Map<String, String> login(@RequestBody Map<String, String> authRequest) {
-        String username = authRequest.get("username");
-        String password = authRequest.get("password");
-
+    public Map<String, String> login(@Valid @RequestBody UserLoginDto loginDto) {
         // Аутентификация пользователя средствами Spring Security
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password)
+                new UsernamePasswordAuthenticationToken(loginDto.getUsername(), loginDto.getPassword())
         );
 
         // Генерация токена при успешном входе
-        final UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        final UserDetails userDetails = userDetailsService.loadUserByUsername(loginDto.getUsername());
         final String jwt = jwtUtils.generateToken(userDetails.getUsername());
 
         return Map.of("token", jwt);
     }
 
     @PostMapping("/register")
-    public String register(@RequestBody Map<String, String> registerRequest) {
-        String username = registerRequest.get("username");
-        String password = registerRequest.get("password");
-
-        if (userRepository.findByUsername(username).isPresent()) {
-            throw new RuntimeException("Пользователь уже существует");
+    public UserResponseDto register(@Valid @RequestBody UserRegisterDto registerDto) {
+        // Выбрасываем IllegalArgumentException, чтобы ExceptionHandler вернул статус 400 вместо 500
+        if (userRepository.findByUsername(registerDto.getUsername()).isPresent()) {
+            throw new IllegalArgumentException("Пользователь с таким именем уже существует");
         }
 
         User newUser = new User();
-        newUser.setUsername(username);
-        // Хешируем пароль перед записью в БД
-        newUser.setPassword(passwordEncoder.encode(password));
-        // По умолчанию регистрируем как обычного пользователя
+        newUser.setUsername(registerDto.getUsername());
+        newUser.setPassword(passwordEncoder.encode(registerDto.getPassword()));
         newUser.setRole("ROLE_USER");
 
-        userRepository.save(newUser);
-        return "Пользователь успешно зарегистрирован!";
+        User savedUser = userRepository.save(newUser);
+
+        return new UserResponseDto(
+                savedUser.getId(),
+                savedUser.getUsername(),
+                savedUser.getRole(),
+                "Пользователь успешно зарегистрирован!"
+        );
     }
 }
