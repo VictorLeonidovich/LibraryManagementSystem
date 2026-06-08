@@ -8,7 +8,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,12 +16,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(properties = {
-        "spring.test.database.replace=NONE",
-        "spring.profiles.active=test"
-})
-@DisplayName("BookRepository Data JPA Tests")
-class BookRepositoryTest {
+@DisplayName("BookRepository Integration Tests with Testcontainers (PostgreSQL)")
+class BookRepositoryTest extends BaseContainersTest {
 
     @Autowired
     private BookRepository bookRepository;
@@ -75,7 +70,7 @@ class BookRepositoryTest {
     @Test
     @DisplayName("searchByNameOrIsbn should find book by part of its name regardless of case")
     void searchByNameOrIsbn_WhenNameMatches_ShouldReturnFilteredPage() {
-        String keyword = "вОйНа"; // Проверяем регистронезависимость LOWER()
+        String keyword = "вОйНа"; // Проверяем регистронезависимость LOWER() в PostgreSQL
         Pageable pageable = PageRequest.of(0, 10);
 
         Page<Book> resultPage = bookRepository.searchByNameOrIsbn(keyword, pageable);

@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,12 +13,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(properties = {
-        "spring.test.database.replace=NONE",
-        "spring.profiles.active=test"
-})
-@DisplayName("CategoryRepository Data JPA Tests")
-class CategoryRepositoryTest {
+@DisplayName("CategoryRepository Integration Tests with Testcontainers (PostgreSQL)")
+class CategoryRepositoryTest extends BaseContainersTest {
 
     @Autowired
     private CategoryRepository categoryRepository;
@@ -44,7 +39,7 @@ class CategoryRepositoryTest {
     @Test
     @DisplayName("findByNameContainingIgnoreCase should return page of filtered categories regardless of case")
     void findByNameContainingIgnoreCase_WhenMatchExists_ShouldReturnFilteredPage() {
-        String searchName = "фАнТаСтИкА"; // Смешанный регистр для проверки LOWER() в запросе
+        String searchName = "фАнТаСтИкА"; // Смешанный регистр для проверки LOWER() в запросе к PostgreSQL
         Pageable pageable = PageRequest.of(0, 10);
 
         Page<Category> resultPage = categoryRepository.findByNameContainingIgnoreCase(searchName, pageable);

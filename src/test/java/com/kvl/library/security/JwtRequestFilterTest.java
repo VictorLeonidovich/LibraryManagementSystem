@@ -25,8 +25,8 @@ import java.util.Date;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
-@DisplayName("JWT Security Coverage Booster Tests")
-class JwtSecurityUnitLinesTest {
+@DisplayName("JwtRequestFilter and JwtUtils Unit Coverage Tests")
+class JwtRequestFilterTest {
 
     private JwtUtils jwtUtils;
     private UserDetailsService userDetailsService;

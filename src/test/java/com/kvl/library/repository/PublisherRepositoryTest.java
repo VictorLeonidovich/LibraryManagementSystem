@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,12 +13,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(properties = {
-        "spring.test.database.replace=NONE",
-        "spring.profiles.active=test"
-})
-@DisplayName("PublisherRepository Data JPA Tests")
-class PublisherRepositoryTest {
+@DisplayName("PublisherRepository Integration Tests with Testcontainers (PostgreSQL)")
+class PublisherRepositoryTest extends BaseContainersTest {
 
     @Autowired
     private PublisherRepository publisherRepository;
@@ -44,7 +39,7 @@ class PublisherRepositoryTest {
     @Test
     @DisplayName("findByNameContainingIgnoreCase should return page of filtered publishers regardless of case")
     void findByNameContainingIgnoreCase_WhenMatchExists_ShouldReturnFilteredPage() {
-        String searchName = "эКсМо"; // Смешанный регистр для проверки LOWER() в запросе
+        String searchName = "эКсМо"; // Смешанный регистр для проверки LOWER() в запросе на PostgreSQL
         Pageable pageable = PageRequest.of(0, 10);
 
         Page<Publisher> resultPage = publisherRepository.findByNameContainingIgnoreCase(searchName, pageable);

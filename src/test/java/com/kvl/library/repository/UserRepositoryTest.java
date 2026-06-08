@@ -5,18 +5,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(properties = {
-        "spring.test.database.replace=NONE",
-        "spring.profiles.active=test"
-})
-@DisplayName("UserRepository Data JPA Tests")
-class UserRepositoryTest {
+@DisplayName("UserRepository Integration Tests with Testcontainers (PostgreSQL)")
+class UserRepositoryTest extends BaseContainersTest {
 
     @Autowired
     private UserRepository userRepository;
@@ -26,10 +21,13 @@ class UserRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // Очищаем базу данных перед каждым тестом
+        // 1. Даем команду на очистку
         userRepository.deleteAll();
 
-        // Создаем тестовых пользователей с использованием сеттеров из Lombok @Data
+        // 2. Принудительно отправляем DELETE в PostgreSQL прямо сейчас
+        userRepository.flush();
+
+        // 3. Теперь база гарантированно чиста, и мы можем безопасно сохранять новых пользователей
         admin = new User();
         admin.setUsername("admin");
         admin.setPassword("password123");
@@ -43,6 +41,9 @@ class UserRepositoryTest {
         // Сохраняем пользователей в тестовую БД
         userRepository.save(admin);
         userRepository.save(manager);
+
+        // Дополнительно синхронизируем вставку
+        userRepository.flush();
     }
 
     @Test
