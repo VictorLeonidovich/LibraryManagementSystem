@@ -3,3 +3,7 @@ databaseChangeLog:
       file: db/changelog/changes/001-create-tables.sql
   - include:
       file: db/changelog/changes/002-seed-dev-data.sql
+  - include:
+      file: db/changelog/changes/003-prod-users.sql
+  - include:
+      file: db/changelog/changes/004-prod-data.sql

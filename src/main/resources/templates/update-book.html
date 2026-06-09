@@ -35,25 +35,39 @@
                     </div>
 
                     <!-- Добавлен выбор нескольких элементов (multiple) для Many-to-Many связей -->
+                    <!-- Категории -->
                     <div class="form-group col-md-8">
                         <label for="categories" class="col-form-label">Categories (Hold Ctrl to select multiple)</label>
                         <select th:field="*{categories}" class="form-control" id="categories" multiple="multiple">
-                            <option th:each="category: ${categories}" th:value="${category.id}"
-                                    th:text="${category.name}"></option>
+                            <option th:each="category : ${categories}"
+                                    th:value="${category.id}"
+                                    th:text="${category.name}"
+                                    th:selected="${book.categories != null and book.categories.contains(category)}">
+                            </option>
                         </select>
                     </div>
+
+                    <!-- Авторы -->
                     <div class="form-group col-md-8">
                         <label for="authors" class="col-form-label">Authors (Hold Ctrl to select multiple)</label>
                         <select th:field="*{authors}" class="form-control" id="authors" multiple="multiple">
-                            <option th:each="author: ${authors}" th:value="${author.id}"
-                                    th:text="${author.name}"></option>
+                            <option th:each="author : ${authors}"
+                                    th:value="${author.id}"
+                                    th:text="${author.name}"
+                                    th:selected="${book.authors != null and book.authors.contains(author)}">
+                            </option>
                         </select>
                     </div>
+
+                    <!-- Издатели -->
                     <div class="form-group col-md-8">
                         <label for="publishers" class="col-form-label">Publishers (Hold Ctrl to select multiple)</label>
                         <select th:field="*{publishers}" class="form-control" id="publishers" multiple="multiple">
-                            <option th:each="publisher: ${publishers}" th:value="${publisher.id}"
-                                    th:text="${publisher.name}"></option>
+                            <option th:each="publisher : ${publishers}"
+                                    th:value="${publisher.id}"
+                                    th:text="${publisher.name}"
+                                    th:selected="${book.publishers != null and book.publishers.contains(publisher)}">
+                            </option>
                         </select>
                     </div>
                     <div class="col-md-6 mt-3">

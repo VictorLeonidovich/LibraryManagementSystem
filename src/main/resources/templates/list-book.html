@@ -23,7 +23,13 @@
                         </tr>
                         <tr>
                             <td>Category</td>
-                            <td th:text="${book.categories[0].name}"></td>
+                            <td>
+                                <!-- Безопасно выводим категории через запятую. Если список пуст — выведется дефолтный текст -->
+                                <span th:if="${!book.categories.isEmpty()}" th:each="cat, iterStat : ${book.categories}">
+                                    <span th:text="${cat.name}"></span><th:block th:if="${!iterStat.last}">, </th:block>
+                                </span>
+                                <span th:if="${book.categories.isEmpty()}" class="text-muted">Без категории</span>
+                            </td>
                         </tr>
                         <tr>
                             <td>Book name</td>
@@ -31,11 +37,23 @@
                         </tr>
                         <tr>
                             <td>Author name</td>
-                            <td th:text="${book.authors[0].name}"></td>
+                            <td>
+                                <!-- Безопасно выводим авторов через запятую -->
+                                <span th:if="${!book.authors.isEmpty()}" th:each="author, iterStat : ${book.authors}">
+                                    <span th:text="${author.name}"></span><th:block th:if="${!iterStat.last}">, </th:block>
+                                </span>
+                                <span th:if="${book.authors.isEmpty()}" class="text-muted">Автор не указан</span>
+                            </td>
                         </tr>
                         <tr>
                             <td>Publisher name</td>
-                            <td th:text="${book.publishers[0].name}"></td>
+                            <td>
+                                <!-- Безопасно выводим издателей через запятую -->
+                                <span th:if="${!book.publishers.isEmpty()}" th:each="pub, iterStat : ${book.publishers}">
+                                    <span th:text="${pub.name}"></span><th:block th:if="${!iterStat.last}">, </th:block>
+                                </span>
+                                <span th:if="${book.publishers.isEmpty()}" class="text-muted">Издатель не указан</span>
+                            </td>
                         </tr>
                         <tr>
                             <td>Description</td>
