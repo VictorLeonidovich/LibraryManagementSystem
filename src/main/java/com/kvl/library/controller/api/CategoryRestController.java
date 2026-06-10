@@ -1,4 +1,4 @@
-package com.kvl.library.controller;
+package com.kvl.library.controller.api;
 
 import com.kvl.library.dto.CategoryRequestDTO;
 import com.kvl.library.dto.CategoryResponseDTO;

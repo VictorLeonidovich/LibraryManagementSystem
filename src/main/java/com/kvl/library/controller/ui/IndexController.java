@@ -1,4 +1,4 @@
-package com.kvl.library.controller;
+package com.kvl.library.controller.ui;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;

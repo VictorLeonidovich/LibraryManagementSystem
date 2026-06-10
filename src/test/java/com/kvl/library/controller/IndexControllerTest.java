@@ -1,5 +1,6 @@
 package com.kvl.library.controller;
 
+import com.kvl.library.controller.ui.IndexController;
 import com.kvl.library.security.JwtRequestFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

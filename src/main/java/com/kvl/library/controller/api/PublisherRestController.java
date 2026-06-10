@@ -1,4 +1,4 @@
-package com.kvl.library.controller;
+package com.kvl.library.controller.api;
 
 import com.kvl.library.dto.PublisherRequestDTO;
 import com.kvl.library.dto.PublisherResponseDTO;
