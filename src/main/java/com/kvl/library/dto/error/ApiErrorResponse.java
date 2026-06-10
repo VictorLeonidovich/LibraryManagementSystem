@@ -1,4 +1,4 @@
-package com.kvl.library.exception;
+package com.kvl.library.dto.error;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
