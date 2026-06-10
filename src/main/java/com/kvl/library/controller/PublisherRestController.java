@@ -5,8 +5,14 @@ import com.kvl.library.dto.PublisherResponseDTO;
 import com.kvl.library.entity.Publisher;
 import com.kvl.library.mapper.PublisherMapper;
 import com.kvl.library.service.PublisherService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -18,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/publishers")
 @RequiredArgsConstructor
+@Tag(name = "Издатели", description = "Управление каталогом издательств (Доступ: USER/ADMIN)")
 public class PublisherRestController {
 
     private final PublisherService publisherService;
@@ -25,9 +32,16 @@ public class PublisherRestController {
 
     // GET /api/v1/publishers?name=Молодая&page=0&size=10&sort=name,asc
     @GetMapping
+    @Operation(summary = "Получить список издателей с пагинацией и фильтрацией",
+            description = "Позволяет искать издательства по совпадению в названии. Доступно всем аутентифицированным пользователям.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Список издателей успешно получен"),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
+    })
     public ResponseEntity<Page<PublisherResponseDTO>> getAllPublishers(
+            @Parameter(description = "Название издательства для поиска", example = "Молодая")
             @RequestParam(required = false) String name,
-            @PageableDefault(size = 10, sort = "name") Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 10, sort = "name") Pageable pageable) {
 
         Page<Publisher> publishersPage;
         if (name != null && !name.trim().isEmpty()) {
@@ -42,7 +56,14 @@ public class PublisherRestController {
 
     // GET /api/v1/publishers/{id}
     @GetMapping("/{id}")
-    public ResponseEntity<PublisherResponseDTO> getPublisherById(@PathVariable Long id) {
+    @Operation(summary = "Получить издателя по его ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Издатель найден"),
+            @ApiResponse(responseCode = "404", description = "Издатель с таким ID отсутствует в базе данных")
+    })
+    public ResponseEntity<PublisherResponseDTO> getPublisherById(
+            @Parameter(description = "Идентификатор издателя", example = "3")
+            @PathVariable Long id) {
         Publisher publisher = publisherService.findPublisherById(id);
         return ResponseEntity.ok(publisherMapper.toResponseDTO(publisher));
     }
@@ -50,6 +71,12 @@ public class PublisherRestController {
     // POST /api/v1/publishers
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Создать новое издательство", description = "Доступно только пользователям с ролью ADMIN.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Издатель успешно создан"),
+            @ApiResponse(responseCode = "400", description = "Некорректные входные данные (ошибка валидации)"),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен (отсутствует роль ADMIN)")
+    })
     public ResponseEntity<PublisherResponseDTO> createPublisher(@Valid @RequestBody PublisherRequestDTO requestDTO) {
         Publisher publisher = publisherMapper.toEntity(requestDTO);
         publisherService.createPublisher(publisher);
@@ -59,8 +86,17 @@ public class PublisherRestController {
     // PUT /api/v1/publishers/{id}
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<PublisherResponseDTO> updatePublisher(@PathVariable Long id,
-                                                                @Valid @RequestBody PublisherRequestDTO requestDTO) {
+    @Operation(summary = "Обновить существующего издателя по ID", description = "Полное обновление полей издательства. Доступно только ADMIN.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Данные издательства успешно обновлены"),
+            @ApiResponse(responseCode = "400", description = "Некорректные входные данные"),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
+            @ApiResponse(responseCode = "404", description = "Издатель не найден")
+    })
+    public ResponseEntity<PublisherResponseDTO> updatePublisher(
+            @Parameter(description = "Идентификатор обновляемого издателя", example = "3")
+            @PathVariable Long id,
+            @Valid @RequestBody PublisherRequestDTO requestDTO) {
         Publisher existingPublisher = publisherService.findPublisherById(id);
         publisherMapper.updateEntityFromDto(requestDTO, existingPublisher);
         publisherService.updatePublisher(existingPublisher);
@@ -70,7 +106,15 @@ public class PublisherRestController {
     // DELETE /api/v1/publishers/{id}
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deletePublisher(@PathVariable Long id) {
+    @Operation(summary = "Удалить издателя по ID", description = "Доступно только пользователям с ролью ADMIN.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Издатель успешно удален (нет содержимого)"),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
+            @ApiResponse(responseCode = "404", description = "Издатель не найден")
+    })
+    public ResponseEntity<Void> deletePublisher(
+            @Parameter(description = "Идентификатор удаляемого издателя", example = "3")
+            @PathVariable Long id) {
         publisherService.deletePublisher(id);
         return ResponseEntity.noContent().build();
     }

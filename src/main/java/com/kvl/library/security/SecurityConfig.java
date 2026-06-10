@@ -34,8 +34,9 @@ public class SecurityConfig {
 
                 // Настройка прав доступа к URL
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Открытый доступ для авторизации
+                        // 1. Открытый доступ для авторизации и документации Swagger
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
                         // 2. Ограничение по ролям на уровне URL (Важно: без префикса ROLE_)
                         // Разрешаем удаление, создание и обновление только для ADMIN

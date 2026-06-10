@@ -6,6 +6,12 @@ import com.kvl.library.dto.UserResponseDto;
 import com.kvl.library.entity.User;
 import com.kvl.library.repository.UserRepository;
 import com.kvl.library.security.JwtUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,6 +24,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Авторизация", description = "Регистрация и аутентификация пользователей (Открытый доступ)")
 public class AuthApiController {
 
     private final AuthenticationManager authenticationManager;
@@ -39,6 +46,15 @@ public class AuthApiController {
     }
 
     @PostMapping("/login")
+    @Operation(summary = "Аутентификация пользователя и получение JWT-токена",
+            description = "Проверяет учетные данные и возвращает строку токена для заголовка Authorization.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешный вход в систему",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"token\": \"eyJhbGciOiJIUzI1NiJ9...\"}"))),
+            @ApiResponse(responseCode = "400", description = "Некорректный формат запроса"),
+            @ApiResponse(responseCode = "401", description = "Неверное имя пользователя или пароль")
+    })
     public Map<String, String> login(@Valid @RequestBody UserLoginDto loginDto) {
         // Аутентификация пользователя средствами Spring Security
         authenticationManager.authenticate(
@@ -53,6 +69,12 @@ public class AuthApiController {
     }
 
     @PostMapping("/register")
+    @Operation(summary = "Регистрация нового пользователя",
+            description = "Создает в системе новую учетную запись с базовой ролью ROLE_USER.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Пользователь успешно создан"),
+            @ApiResponse(responseCode = "400", description = "Ошибка валидации данных или имя пользователя уже занято")
+    })
     public UserResponseDto register(@Valid @RequestBody UserRegisterDto registerDto) {
         // Выбрасываем IllegalArgumentException, чтобы ExceptionHandler вернул статус 400 вместо 500
         if (userRepository.findByUsername(registerDto.getUsername()).isPresent()) {

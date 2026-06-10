@@ -8,8 +8,14 @@ import com.kvl.library.service.AuthorService;
 import com.kvl.library.service.BookService;
 import com.kvl.library.service.CategoryService;
 import com.kvl.library.service.PublisherService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -23,6 +29,7 @@ import java.util.HashSet;
 @RestController
 @RequestMapping("/api/v1/books")
 @RequiredArgsConstructor
+@Tag(name = "Книги", description = "Управление каталогом книг (Доступ: USER/ADMIN)")
 public class BookRestController {
 
     private final BookService bookService;
@@ -33,9 +40,16 @@ public class BookRestController {
 
     // GET /api/v1/books?keyword=Война&page=0&size=10&sort=name,asc
     @GetMapping
+    @Operation(summary = "Получить список книг с пагинацией и фильтрацией",
+            description = "Позволяет искать книги по ключевому слову в названии или описании. Доступно всем аутентифицированным пользователям.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Список книг успешно получен"),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
+    })
     public ResponseEntity<Page<BookResponseDTO>> getAllBooks(
+            @Parameter(description = "Ключевое слово для поиска (по названию/описанию)", example = "Война")
             @RequestParam(required = false) String keyword,
-            @PageableDefault(size = 10, sort = "name") Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 10, sort = "name") Pageable pageable) {
 
         Page<Book> booksPage;
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -49,13 +63,26 @@ public class BookRestController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BookResponseDTO> getBookById(@PathVariable Long id) {
+    @Operation(summary = "Получить книгу по её ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Книга найдена"),
+            @ApiResponse(responseCode = "404", description = "Книга с таким ID отсутствует в базе данных")
+    })
+    public ResponseEntity<BookResponseDTO> getBookById(
+            @Parameter(description = "Идентификатор книги", example = "1")
+            @PathVariable Long id) {
         Book book = bookService.findBookById(id);
         return ResponseEntity.ok(bookMapper.toResponseDTO(book));
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Создать новую книгу", description = "Доступно только пользователям с ролью ADMIN.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Книга успешно создана"),
+            @ApiResponse(responseCode = "400", description = "Некорректные входные данные (ошибка валидации)"),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен (отсутствует роль ADMIN)")
+    })
     public ResponseEntity<BookResponseDTO> createBook(@Valid @RequestBody BookRequestDTO requestDTO) {
         Book book = bookMapper.toEntity(requestDTO);
         mapRelations(requestDTO, book);
@@ -65,8 +92,17 @@ public class BookRestController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookResponseDTO> updateBook(@PathVariable Long id,
-                                                      @Valid @RequestBody BookRequestDTO requestDTO) {
+    @Operation(summary = "Обновить существующую книгу по ID", description = "Полное обновление полей книги и её связей. Доступно только ADMIN.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Книга успешно обновлена"),
+            @ApiResponse(responseCode = "400", description = "Некорректные входные данные"),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
+            @ApiResponse(responseCode = "404", description = "Книга не найдена")
+    })
+    public ResponseEntity<BookResponseDTO> updateBook(
+            @Parameter(description = "Идентификатор обновляемой книги", example = "1")
+            @PathVariable Long id,
+            @Valid @RequestBody BookRequestDTO requestDTO) {
         Book existingBook = bookService.findBookById(id);
         bookMapper.updateEntityFromDto(requestDTO, existingBook);
 
@@ -82,7 +118,15 @@ public class BookRestController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteBook(@PathVariable Long id) {
+    @Operation(summary = "Удалить книгу по ID", description = "Доступно только пользователям с ролью ADMIN.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "24", description = "Книга успешно удалена (нет содержимого)"),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
+            @ApiResponse(responseCode = "404", description = "Книга не найдена")
+    })
+    public ResponseEntity<Void> deleteBook(
+            @Parameter(description = "Идентификатор удаляемой книги", example = "1")
+            @PathVariable Long id) {
         bookService.deleteBook(id);
         return ResponseEntity.noContent().build();
     }
