@@ -1,34 +1,54 @@
-package com.kvl.library.controller;
+package com.kvl.library.controller.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kvl.library.dto.CategoryRequestDTO;
+import com.kvl.library.dto.CategoryResponseDTO;
 import com.kvl.library.entity.Category;
-import com.kvl.library.repository.CategoryRepository;
+import com.kvl.library.exception.EntityNotFoundException;
+import com.kvl.library.mapper.CategoryMapper;
 import com.kvl.library.security.JwtRequestFilter;
+import com.kvl.library.service.CategoryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.Collections;
+
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@DisplayName("CategoryRestController Integration Tests (PostgreSQL Testcontainers)")
-class CategoryRestControllerContainersTest extends BaseWebContainersTest {
+@WebMvcTest(CategoryRestController.class)
+@ActiveProfiles("test")
+@EnableMethodSecurity
+@DisplayName("CategoryRestController Unit Tests")
+class CategoryRestControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+    @MockitoBean
+    private CategoryService categoryService;
+
+    @MockitoBean
+    private CategoryMapper categoryMapper;
 
     @MockitoBean
     private JwtRequestFilter jwtRequestFilter;
@@ -36,21 +56,23 @@ class CategoryRestControllerContainersTest extends BaseWebContainersTest {
     @MockitoBean
     private UserDetailsService userDetailsService;
 
-    private Category savedCategory;
+    private Category testCategory;
+    private CategoryResponseDTO testResponseDTO;
     private CategoryRequestDTO validRequestDTO;
 
     @BeforeEach
     void setUp() throws Exception {
-        // 1. Сохраняем реальную категорию в PostgreSQL через репозиторий
-        Category category = new Category();
-        category.setName("Sci-Fi");
-        savedCategory = categoryRepository.save(category);
+        testCategory = new Category();
+        testCategory.setId(1L);
+        testCategory.setName("Sci-Fi");
 
-        // 2. Готовим уникальный DTO для тестов создания (чтобы не нарушать unique constraint "categories_name_key")
+        testResponseDTO = new CategoryResponseDTO();
+        testResponseDTO.setId(1L);
+        testResponseDTO.setName("Sci-Fi");
+
         validRequestDTO = new CategoryRequestDTO();
-        validRequestDTO.setName("Drama");
+        validRequestDTO.setName("Sci-Fi");
 
-        // Пропуск JWT фильтра безопасности
         doAnswer(invocation -> {
             jakarta.servlet.ServletRequest request = invocation.getArgument(0);
             jakarta.servlet.ServletResponse response = invocation.getArgument(1);
@@ -64,10 +86,13 @@ class CategoryRestControllerContainersTest extends BaseWebContainersTest {
     @DisplayName("GET /api/v1/categories - Should return all categories paginated")
     @WithMockUser
     void getAllCategories_WithoutParam_ShouldReturnPaginated() throws Exception {
+        Page<Category> page = new PageImpl<>(Collections.singletonList(testCategory));
+        when(categoryService.findAllCategories(any(Pageable.class))).thenReturn(page);
+        when(categoryMapper.toResponseDTO(testCategory)).thenReturn(testResponseDTO);
+
         mockMvc.perform(get("/api/v1/categories"))
                 .andExpect(status().isOk())
-                // Добавили [0] для указания на первый элемент в массиве content
-                .andExpect(jsonPath("$.content[0].id").value(savedCategory.getId()))
+                .andExpect(jsonPath("$.content[0].id").value(1L))
                 .andExpect(jsonPath("$.content[0].name").value("Sci-Fi"));
     }
 
@@ -75,9 +100,12 @@ class CategoryRestControllerContainersTest extends BaseWebContainersTest {
     @DisplayName("GET /api/v1/categories?name=... - Should search categories by name")
     @WithMockUser
     void getAllCategories_WithParam_ShouldReturnFiltered() throws Exception {
+        Page<Category> page = new PageImpl<>(Collections.singletonList(testCategory));
+        when(categoryService.searchCategoriesByName(eq("Sci"), any(Pageable.class))).thenReturn(page);
+        when(categoryMapper.toResponseDTO(testCategory)).thenReturn(testResponseDTO);
+
         mockMvc.perform(get("/api/v1/categories").param("name", "Sci"))
                 .andExpect(status().isOk())
-                // Добавили [0] для указания на первый элемент в массиве content
                 .andExpect(jsonPath("$.content[0].name").value("Sci-Fi"));
     }
 
@@ -85,9 +113,12 @@ class CategoryRestControllerContainersTest extends BaseWebContainersTest {
     @DisplayName("GET /api/v1/categories/{id} - Should return category by id")
     @WithMockUser
     void getCategoryById_ShouldReturnCategory() throws Exception {
-        mockMvc.perform(get("/api/v1/categories/" + savedCategory.getId()))
+        when(categoryService.findCategoryById(1L)).thenReturn(testCategory);
+        when(categoryMapper.toResponseDTO(testCategory)).thenReturn(testResponseDTO);
+
+        mockMvc.perform(get("/api/v1/categories/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(savedCategory.getId()))
+                .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.name").value("Sci-Fi"));
     }
 
@@ -95,7 +126,9 @@ class CategoryRestControllerContainersTest extends BaseWebContainersTest {
     @DisplayName("GET /api/v1/categories/{id} - Should return 404 when missing")
     @WithMockUser
     void getCategoryById_NotFound_ShouldReturn404() throws Exception {
-        mockMvc.perform(get("/api/v1/categories/99999"))
+        when(categoryService.findCategoryById(99L)).thenThrow(new EntityNotFoundException("Category not found"));
+
+        mockMvc.perform(get("/api/v1/categories/99"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -104,13 +137,16 @@ class CategoryRestControllerContainersTest extends BaseWebContainersTest {
     @DisplayName("POST /api/v1/categories - Should create category when user is ADMIN")
     @WithMockUser(roles = "ADMIN")
     void createCategory_AsAdmin_ShouldReturnCreated() throws Exception {
+        when(categoryMapper.toEntity(any(CategoryRequestDTO.class))).thenReturn(testCategory);
+        doNothing().when(categoryService).createCategory(any(Category.class));
+        when(categoryMapper.toResponseDTO(testCategory)).thenReturn(testResponseDTO);
+
         mockMvc.perform(post("/api/v1/categories")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequestDTO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").exists())
-                .andExpect(jsonPath("$.name").value("Drama"));
+                .andExpect(jsonPath("$.id").value(1L));
     }
 
     @Test
@@ -118,7 +154,7 @@ class CategoryRestControllerContainersTest extends BaseWebContainersTest {
     @WithMockUser(roles = "ADMIN")
     void createCategory_InvalidDto_ShouldReturnBadRequest() throws Exception {
         CategoryRequestDTO invalidDto = new CategoryRequestDTO();
-        invalidDto.setName(""); // Ошибка валидации: пустое имя нарушает @NotEmpty
+        invalidDto.setName(""); // Ошибка валдиации
 
         mockMvc.perform(post("/api/v1/categories")
                         .with(csrf())
@@ -137,45 +173,42 @@ class CategoryRestControllerContainersTest extends BaseWebContainersTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequestDTO)))
-                .andExpect(status().isForbidden()); // Spring Security блокирует запрос без тела JSON
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
     }
 
     @Test
     @DisplayName("PUT /api/v1/categories/{id} - Should update category when ADMIN")
     @WithMockUser(roles = "ADMIN")
     void updateCategory_AsAdmin_ShouldReturnOk() throws Exception {
-        CategoryRequestDTO updateDto = new CategoryRequestDTO();
-        updateDto.setName("Sci-Fi - Modified");
+        when(categoryService.findCategoryById(1L)).thenReturn(testCategory);
+        doNothing().when(categoryMapper).updateEntityFromDto(any(CategoryRequestDTO.class), any(Category.class));
+        doNothing().when(categoryService).updateCategory(any(Category.class));
+        when(categoryMapper.toResponseDTO(testCategory)).thenReturn(testResponseDTO);
 
-        mockMvc.perform(put("/api/v1/categories/" + savedCategory.getId())
+        mockMvc.perform(put("/api/v1/categories/1")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(savedCategory.getId()))
-                .andExpect(jsonPath("$.name").value("Sci-Fi - Modified"));
+                        .content(objectMapper.writeValueAsString(validRequestDTO)))
+                .andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("DELETE /api/v1/categories/{id} - Should delete category when ADMIN")
     @WithMockUser(roles = "ADMIN")
     void deleteCategory_AsAdmin_ShouldReturnNoContent() throws Exception {
-        mockMvc.perform(delete("/api/v1/categories/" + savedCategory.getId()).with(csrf()))
-                .andExpect(status().isNoContent());
+        doNothing().when(categoryService).deleteCategory(1L);
 
-        // Проверяем удаление сквозным образом — повторный GET запрос обязан вернуть 404
-        mockMvc.perform(get("/api/v1/categories/" + savedCategory.getId()))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/v1/categories/1").with(csrf()))
+                .andExpect(status().isNoContent());
     }
 
     @Test
     @DisplayName("DELETE /api/v1/categories/{id} - Should return 403 when user is not ADMIN")
     @WithMockUser(roles = "USER")
     void deleteCategory_AsUser_ShouldReturnForbidden() throws Exception {
-        mockMvc.perform(delete("/api/v1/categories/" + savedCategory.getId()).with(csrf()))
-                .andExpect(status().isForbidden());
-
-        // Проверяем через репозиторий, что категория осталась нетронутой в PostgreSQL
-        assertThat(categoryRepository.existsById(savedCategory.getId())).isTrue();
+        mockMvc.perform(delete("/api/v1/categories/1").with(csrf()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
     }
 }

@@ -1,30 +1,42 @@
-package com.kvl.library.controller;
+package com.kvl.library.controller.ui;
 
 import com.kvl.library.entity.Publisher;
-import com.kvl.library.repository.PublisherRepository;
 import com.kvl.library.security.JwtRequestFilter;
+import com.kvl.library.service.PublisherService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.Collections;
+
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@DisplayName("PublisherController Thymeleaf Integration Tests (PostgreSQL Testcontainers)")
-class PublisherControllerContainersTest extends BaseWebContainersTest {
+@WebMvcTest(PublisherController.class)
+@ActiveProfiles("test")
+@DisplayName("PublisherController Unit Tests")
+class PublisherControllerTest {
 
     @Autowired
-    private PublisherRepository publisherRepository;
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private PublisherService publisherService;
 
     @MockitoBean
     private JwtRequestFilter jwtRequestFilter;
@@ -32,16 +44,15 @@ class PublisherControllerContainersTest extends BaseWebContainersTest {
     @MockitoBean
     private UserDetailsService userDetailsService;
 
-    private Publisher savedPublisher;
+    private Publisher testPublisher;
 
     @BeforeEach
     void setUp() throws Exception {
-        // Сохраняем реальное издательство в PostgreSQL
-        Publisher publisher = new Publisher();
-        publisher.setName("O'Reilly");
-        savedPublisher = publisherRepository.save(publisher);
+        testPublisher = new Publisher();
+        testPublisher.setId(1L);
+        testPublisher.setName("O'Reilly");
 
-        // Пропуск JWT фильтра безопасности по цепочке дальше
+        // Обучаем публичный метод доходить до конца и вызывать следующую цепочку фильтров
         doAnswer(invocation -> {
             jakarta.servlet.ServletRequest request = invocation.getArgument(0);
             jakarta.servlet.ServletResponse response = invocation.getArgument(1);
@@ -52,9 +63,12 @@ class PublisherControllerContainersTest extends BaseWebContainersTest {
     }
 
     @Test
-    @DisplayName("GET /publishers - Should return publishers template with paginated data from PostgreSQL")
+    @DisplayName("GET /publishers - Should return publishers template with paginated data")
     @WithMockUser
     void findAllPublishers_ShouldReturnTemplateWithData() throws Exception {
+        Page<Publisher> publisherPage = new PageImpl<>(Collections.singletonList(testPublisher));
+        when(publisherService.findAllPublishers(any(Pageable.class))).thenReturn(publisherPage);
+
         mockMvc.perform(get("/publishers")
                         .param("page", "0")
                         .param("size", "5"))
@@ -65,59 +79,68 @@ class PublisherControllerContainersTest extends BaseWebContainersTest {
                 .andExpect(model().attribute("totalPages", 1))
                 .andExpect(model().attribute("totalItems", 1L))
                 .andExpect(model().attribute("size", 5));
+
+        verify(publisherService, times(1)).findAllPublishers(any(Pageable.class));
     }
 
     @Test
-    @DisplayName("GET /remove-publisher/{id} - Should delete publisher from PostgreSQL and redirect")
+    @DisplayName("GET /remove-publisher/{id} - Should delete publisher and redirect to publishers list")
     @WithMockUser
     void removePublisher_ShouldDeleteAndRedirect() throws Exception {
-        mockMvc.perform(get("/remove-publisher/" + savedPublisher.getId()))
+        doNothing().when(publisherService).deletePublisher(1L);
+
+        mockMvc.perform(get("/remove-publisher/1"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/publishers"));
 
-        // Проверяем физическое удаление из PostgreSQL контейнера
-        assertThat(publisherRepository.existsById(savedPublisher.getId())).isFalse();
+        verify(publisherService, times(1)).deletePublisher(1L);
     }
 
     @Test
-    @DisplayName("GET /update-publisher/{id} - Should return update template with publisher data from PostgreSQL")
+    @DisplayName("GET /update-publisher/{id} - Should return update template with publisher data")
     @WithMockUser
     void updatePublisher_ShouldReturnUpdateForm() throws Exception {
-        mockMvc.perform(get("/update-publisher/" + savedPublisher.getId()))
+        when(publisherService.findPublisherById(1L)).thenReturn(testPublisher);
+
+        mockMvc.perform(get("/update-publisher/1"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("update-publisher"))
-                .andExpect(model().attributeExists("publisher"));
+                .andExpect(model().attribute("publisher", testPublisher));
+
+        verify(publisherService, times(1)).findPublisherById(1L);
     }
 
     @Test
-    @DisplayName("POST /save-publisher/{id} - Should update publisher in PostgreSQL and redirect when data is valid")
+    @DisplayName("POST /save-publisher/{id} - Should update publisher and redirect when data is valid")
     @WithMockUser
     void updatePublisher_ShouldSaveAndRedirect_WhenValid() throws Exception {
-        mockMvc.perform(post("/save-publisher/" + savedPublisher.getId())
+        doNothing().when(publisherService).updatePublisher(any(Publisher.class));
+
+        mockMvc.perform(post("/save-publisher/1")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("id", savedPublisher.getId().toString())
+                        .param("id", "1")
                         .param("name", "Manning"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/publishers"));
 
-        // Проверяем, что в базе PostgreSQL имя действительно обновилось
-        Publisher updatedPublisher = publisherRepository.findById(savedPublisher.getId()).orElseThrow();
-        assertThat(updatedPublisher.getName()).isEqualTo("Manning");
+        verify(publisherService, times(1)).updatePublisher(any(Publisher.class));
     }
 
     @Test
     @DisplayName("POST /save-publisher/{id} - Should return update template when validation fails")
     @WithMockUser
     void updatePublisher_ShouldReturnUpdateForm_WhenInvalid() throws Exception {
-        mockMvc.perform(post("/save-publisher/" + savedPublisher.getId())
+        mockMvc.perform(post("/save-publisher/1")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("id", savedPublisher.getId().toString())
-                        .param("name", "")) // Пустая строка триггерит Jakarta Validation
+                        .param("id", "1")
+                        .param("name", "")) // Пустое имя триггерит BindingResult ошибки
                 .andExpect(status().isOk())
                 .andExpect(view().name("update-publisher"))
                 .andExpect(model().hasErrors());
+
+        verify(publisherService, never()).updatePublisher(any(Publisher.class));
     }
 
     @Test
@@ -131,15 +154,19 @@ class PublisherControllerContainersTest extends BaseWebContainersTest {
     }
 
     @Test
-    @DisplayName("POST /save-publisher - Should create publisher in PostgreSQL and redirect when data is valid")
+    @DisplayName("POST /save-publisher - Should create publisher and redirect when data is valid")
     @WithMockUser
     void savePublisher_ShouldCreateAndRedirect_WhenValid() throws Exception {
+        doNothing().when(publisherService).createPublisher(any(Publisher.class));
+
         mockMvc.perform(post("/save-publisher")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                         .param("name", "Packt"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/publishers"));
+
+        verify(publisherService, times(1)).createPublisher(any(Publisher.class));
     }
 
     @Test
@@ -149,9 +176,11 @@ class PublisherControllerContainersTest extends BaseWebContainersTest {
         mockMvc.perform(post("/save-publisher")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("name", "")) // Нарушает @NotEmpty
+                        .param("name", "")) // Ошибка валидации
                 .andExpect(status().isOk())
                 .andExpect(view().name("add-publisher"))
                 .andExpect(model().hasErrors());
+
+        verify(publisherService, never()).createPublisher(any(Publisher.class));
     }
 }

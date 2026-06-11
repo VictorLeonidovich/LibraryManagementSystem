@@ -1,43 +1,31 @@
-package com.kvl.library.controller;
+package com.kvl.library.controller.ui;
 
-import com.kvl.library.controller.ui.CategoryController;
+import com.kvl.library.controller.BaseWebContainersTest;
 import com.kvl.library.entity.Category;
+import com.kvl.library.repository.CategoryRepository;
 import com.kvl.library.security.JwtRequestFilter;
-import com.kvl.library.service.CategoryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Collections;
-
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(CategoryController.class)
-@ActiveProfiles("test")
-@DisplayName("CategoryController Unit Tests")
-class CategoryControllerTest {
+@DisplayName("CategoryController Thymeleaf Integration Tests (PostgreSQL Testcontainers)")
+class CategoryControllerContainersTest extends BaseWebContainersTest {
 
     @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private CategoryService categoryService;
+    private CategoryRepository categoryRepository;
 
     @MockitoBean
     private JwtRequestFilter jwtRequestFilter;
@@ -45,13 +33,16 @@ class CategoryControllerTest {
     @MockitoBean
     private UserDetailsService userDetailsService;
 
-    private Category testCategory;
+    private Category savedCategory;
 
     @BeforeEach
     void setUp() throws Exception {
-        testCategory = new Category();
-        testCategory.setId(1L);
-        testCategory.setName("Sci-Fi");
+        // Базовый класс BaseWebContainersTest автоматически очистит базу перед тестом
+
+        // Сохраняем реальную категорию в PostgreSQL через репозиторий
+        Category category = new Category();
+        category.setName("Sci-Fi");
+        savedCategory = categoryRepository.save(category);
 
         // Обучаем публичный метод доходить до конца и вызывать следующую цепочку фильтров
         doAnswer(invocation -> {
@@ -64,12 +55,9 @@ class CategoryControllerTest {
     }
 
     @Test
-    @DisplayName("GET /categories - Should return categories template with paginated data")
+    @DisplayName("GET /categories - Should return categories template with paginated data from PostgreSQL")
     @WithMockUser
     void findAllCategories_ShouldReturnTemplateWithData() throws Exception {
-        Page<Category> categoryPage = new PageImpl<>(Collections.singletonList(testCategory));
-        when(categoryService.findAllCategories(any(Pageable.class))).thenReturn(categoryPage);
-
         mockMvc.perform(get("/categories")
                         .param("page", "0")
                         .param("size", "5"))
@@ -80,68 +68,59 @@ class CategoryControllerTest {
                 .andExpect(model().attribute("totalPages", 1))
                 .andExpect(model().attribute("totalItems", 1L))
                 .andExpect(model().attribute("size", 5));
-
-        verify(categoryService, times(1)).findAllCategories(any(Pageable.class));
     }
 
     @Test
-    @DisplayName("GET /remove-category/{id} - Should delete category and redirect to categories list")
+    @DisplayName("GET /remove-category/{id} - Should delete category from PostgreSQL and redirect to list")
     @WithMockUser
     void removeCategory_ShouldDeleteAndRedirect() throws Exception {
-        doNothing().when(categoryService).deleteCategory(1L);
-
-        mockMvc.perform(get("/remove-category/1"))
+        mockMvc.perform(get("/remove-category/" + savedCategory.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/categories"));
 
-        verify(categoryService, times(1)).deleteCategory(1L);
+        // Честно проверяем в PostgreSQL, что категории больше нет
+        assertThat(categoryRepository.existsById(savedCategory.getId())).isFalse();
     }
 
     @Test
-    @DisplayName("GET /update-category/{id} - Should return update template with category data")
+    @DisplayName("GET /update-category/{id} - Should return update template with category data from PostgreSQL")
     @WithMockUser
     void updateCategory_ShouldReturnUpdateForm() throws Exception {
-        when(categoryService.findCategoryById(1L)).thenReturn(testCategory);
-
-        mockMvc.perform(get("/update-category/1"))
+        mockMvc.perform(get("/update-category/" + savedCategory.getId()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("update-category"))
-                .andExpect(model().attribute("category", testCategory));
-
-        verify(categoryService, times(1)).findCategoryById(1L);
+                .andExpect(model().attributeExists("category"));
     }
 
     @Test
-    @DisplayName("POST /save-category/{id} - Should update category and redirect when data is valid")
+    @DisplayName("POST /save-category/{id} - Should update category in PostgreSQL and redirect when data is valid")
     @WithMockUser
     void updateCategory_ShouldSaveAndRedirect_WhenValid() throws Exception {
-        doNothing().when(categoryService).updateCategory(any(Category.class));
-
-        mockMvc.perform(post("/save-category/1")
+        mockMvc.perform(post("/save-category/" + savedCategory.getId())
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("id", "1")
+                        .param("id", savedCategory.getId().toString())
                         .param("name", "Fantasy"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/categories"));
 
-        verify(categoryService, times(1)).updateCategory(any(Category.class));
+        // Проверяем, что в базе PostgreSQL имя действительно обновилось
+        Category updatedCategory = categoryRepository.findById(savedCategory.getId()).orElseThrow();
+        assertThat(updatedCategory.getName()).isEqualTo("Fantasy");
     }
 
     @Test
     @DisplayName("POST /save-category/{id} - Should return update template when validation fails")
     @WithMockUser
     void updateCategory_ShouldReturnUpdateForm_WhenInvalid() throws Exception {
-        mockMvc.perform(post("/save-category/1")
+        mockMvc.perform(post("/save-category/" + savedCategory.getId())
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("id", "1")
-                        .param("name", "")) // Пустая строка для вызова ошибок валидации
+                        .param("id", savedCategory.getId().toString())
+                        .param("name", "")) // Пустая строка триггерит Jakarta Validation
                 .andExpect(status().isOk())
                 .andExpect(view().name("update-category"))
                 .andExpect(model().hasErrors());
-
-        verify(categoryService, never()).updateCategory(any(Category.class));
     }
 
     @Test
@@ -155,19 +134,15 @@ class CategoryControllerTest {
     }
 
     @Test
-    @DisplayName("POST /save-category - Should create category and redirect when data is valid")
+    @DisplayName("POST /save-category - Should create category in PostgreSQL and redirect when data is valid")
     @WithMockUser
     void saveCategory_ShouldCreateAndRedirect_WhenValid() throws Exception {
-        doNothing().when(categoryService).createCategory(any(Category.class));
-
         mockMvc.perform(post("/save-category")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                         .param("name", "Detective"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/categories"));
-
-        verify(categoryService, times(1)).createCategory(any(Category.class));
     }
 
     @Test
@@ -177,11 +152,9 @@ class CategoryControllerTest {
         mockMvc.perform(post("/save-category")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("name", "")) // Ошибка валидации
+                        .param("name", "")) // Ошибка валидации: пустое имя
                 .andExpect(status().isOk())
                 .andExpect(view().name("add-category"))
                 .andExpect(model().hasErrors());
-
-        verify(categoryService, never()).createCategory(any(Category.class));
     }
 }

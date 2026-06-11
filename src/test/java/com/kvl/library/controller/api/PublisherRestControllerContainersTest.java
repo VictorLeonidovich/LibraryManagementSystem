@@ -1,55 +1,35 @@
-package com.kvl.library.controller;
+package com.kvl.library.controller.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kvl.library.controller.api.PublisherRestController;
+import com.kvl.library.controller.BaseWebContainersTest;
 import com.kvl.library.dto.PublisherRequestDTO;
-import com.kvl.library.dto.PublisherResponseDTO;
 import com.kvl.library.entity.Publisher;
-import com.kvl.library.exception.EntityNotFoundException;
-import com.kvl.library.mapper.PublisherMapper;
+import com.kvl.library.repository.PublisherRepository;
 import com.kvl.library.security.JwtRequestFilter;
-import com.kvl.library.service.PublisherService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Collections;
-
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(PublisherRestController.class)
-@ActiveProfiles("test")
-@EnableMethodSecurity
-@DisplayName("PublisherRestController Unit Tests")
-class PublisherRestControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
+@DisplayName("PublisherRestController Integration Tests (PostgreSQL Testcontainers)")
+class PublisherRestControllerContainersTest extends BaseWebContainersTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @MockitoBean
-    private PublisherService publisherService;
-
-    @MockitoBean
-    private PublisherMapper publisherMapper;
+    @Autowired
+    private PublisherRepository publisherRepository;
 
     @MockitoBean
     private JwtRequestFilter jwtRequestFilter;
@@ -57,23 +37,23 @@ class PublisherRestControllerTest {
     @MockitoBean
     private UserDetailsService userDetailsService;
 
-    private Publisher testPublisher;
-    private PublisherResponseDTO testResponseDTO;
+    private Publisher savedPublisher;
     private PublisherRequestDTO validRequestDTO;
 
     @BeforeEach
     void setUp() throws Exception {
-        testPublisher = new Publisher();
-        testPublisher.setId(1L);
-        testPublisher.setName("O'Reilly");
+        // Базовый класс BaseWebContainersTest автоматически очистит базу перед тестом
 
-        testResponseDTO = new PublisherResponseDTO();
-        testResponseDTO.setId(1L);
-        testResponseDTO.setName("O'Reilly");
+        // 1. Сохраняем реальное издательство в PostgreSQL
+        Publisher publisher = new Publisher();
+        publisher.setName("O'Reilly");
+        savedPublisher = publisherRepository.save(publisher);
 
+        // 2. Готовим уникальный DTO для тестов создания
         validRequestDTO = new PublisherRequestDTO();
-        validRequestDTO.setName("O'Reilly");
+        validRequestDTO.setName("Manning");
 
+        // Пропуск JWT фильтра безопасности
         doAnswer(invocation -> {
             jakarta.servlet.ServletRequest request = invocation.getArgument(0);
             jakarta.servlet.ServletResponse response = invocation.getArgument(1);
@@ -87,13 +67,9 @@ class PublisherRestControllerTest {
     @DisplayName("GET /api/v1/publishers - Should return all publishers paginated")
     @WithMockUser
     void getAllPublishers_WithoutParam_ShouldReturnPaginated() throws Exception {
-        Page<Publisher> page = new PageImpl<>(Collections.singletonList(testPublisher));
-        when(publisherService.findAllPublishers(any(Pageable.class))).thenReturn(page);
-        when(publisherMapper.toResponseDTO(testPublisher)).thenReturn(testResponseDTO);
-
         mockMvc.perform(get("/api/v1/publishers"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(1L))
+                .andExpect(jsonPath("$.content[0].id").value(savedPublisher.getId()))
                 .andExpect(jsonPath("$.content[0].name").value("O'Reilly"));
     }
 
@@ -101,10 +77,6 @@ class PublisherRestControllerTest {
     @DisplayName("GET /api/v1/publishers?name=... - Should search publishers by name")
     @WithMockUser
     void getAllPublishers_WithParam_ShouldReturnFiltered() throws Exception {
-        Page<Publisher> page = new PageImpl<>(Collections.singletonList(testPublisher));
-        when(publisherService.searchPublishersByName(eq("O'Reilly"), any(Pageable.class))).thenReturn(page);
-        when(publisherMapper.toResponseDTO(testPublisher)).thenReturn(testResponseDTO);
-
         mockMvc.perform(get("/api/v1/publishers").param("name", "O'Reilly"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].name").value("O'Reilly"));
@@ -114,12 +86,9 @@ class PublisherRestControllerTest {
     @DisplayName("GET /api/v1/publishers/{id} - Should return publisher by id")
     @WithMockUser
     void getPublisherById_ShouldReturnPublisher() throws Exception {
-        when(publisherService.findPublisherById(1L)).thenReturn(testPublisher);
-        when(publisherMapper.toResponseDTO(testPublisher)).thenReturn(testResponseDTO);
-
-        mockMvc.perform(get("/api/v1/publishers/1"))
+        mockMvc.perform(get("/api/v1/publishers/" + savedPublisher.getId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.id").value(savedPublisher.getId()))
                 .andExpect(jsonPath("$.name").value("O'Reilly"));
     }
 
@@ -127,9 +96,7 @@ class PublisherRestControllerTest {
     @DisplayName("GET /api/v1/publishers/{id} - Should return 404 when missing")
     @WithMockUser
     void getPublisherById_NotFound_ShouldReturn404() throws Exception {
-        when(publisherService.findPublisherById(99L)).thenThrow(new EntityNotFoundException("Publisher not found"));
-
-        mockMvc.perform(get("/api/v1/publishers/99"))
+        mockMvc.perform(get("/api/v1/publishers/99999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -138,16 +105,13 @@ class PublisherRestControllerTest {
     @DisplayName("POST /api/v1/publishers - Should create publisher when user is ADMIN")
     @WithMockUser(roles = "ADMIN")
     void createPublisher_AsAdmin_ShouldReturnCreated() throws Exception {
-        when(publisherMapper.toEntity(any(PublisherRequestDTO.class))).thenReturn(testPublisher);
-        doNothing().when(publisherService).createPublisher(any(Publisher.class));
-        when(publisherMapper.toResponseDTO(testPublisher)).thenReturn(testResponseDTO);
-
         mockMvc.perform(post("/api/v1/publishers")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequestDTO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1L));
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.name").value("Manning"));
     }
 
     @Test
@@ -155,7 +119,7 @@ class PublisherRestControllerTest {
     @WithMockUser(roles = "ADMIN")
     void createPublisher_InvalidDto_ShouldReturnBadRequest() throws Exception {
         PublisherRequestDTO invalidDto = new PublisherRequestDTO();
-        invalidDto.setName("");
+        invalidDto.setName(""); // Ошибка валидации: пустое имя нарушает @NotEmpty
 
         mockMvc.perform(post("/api/v1/publishers")
                         .with(csrf())
@@ -174,42 +138,45 @@ class PublisherRestControllerTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequestDTO)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403));
+                .andExpect(status().isForbidden()); // Spring Security блокирует запрос без тела JSON
     }
 
     @Test
     @DisplayName("PUT /api/v1/publishers/{id} - Should update publisher when ADMIN")
     @WithMockUser(roles = "ADMIN")
     void updatePublisher_AsAdmin_ShouldReturnOk() throws Exception {
-        when(publisherService.findPublisherById(1L)).thenReturn(testPublisher);
-        doNothing().when(publisherMapper).updateEntityFromDto(any(PublisherRequestDTO.class), any(Publisher.class));
-        doNothing().when(publisherService).updatePublisher(any(Publisher.class));
-        when(publisherMapper.toResponseDTO(testPublisher)).thenReturn(testResponseDTO);
+        PublisherRequestDTO updateDto = new PublisherRequestDTO();
+        updateDto.setName("O'Reilly - Modified");
 
-        mockMvc.perform(put("/api/v1/publishers/1")
+        mockMvc.perform(put("/api/v1/publishers/" + savedPublisher.getId())
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequestDTO)))
-                .andExpect(status().isOk());
+                        .content(objectMapper.writeValueAsString(updateDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(savedPublisher.getId()))
+                .andExpect(jsonPath("$.name").value("O'Reilly - Modified"));
     }
 
     @Test
     @DisplayName("DELETE /api/v1/publishers/{id} - Should delete publisher when ADMIN")
     @WithMockUser(roles = "ADMIN")
     void deletePublisher_AsAdmin_ShouldReturnNoContent() throws Exception {
-        doNothing().when(publisherService).deletePublisher(1L);
-
-        mockMvc.perform(delete("/api/v1/publishers/1").with(csrf()))
+        mockMvc.perform(delete("/api/v1/publishers/" + savedPublisher.getId()).with(csrf()))
                 .andExpect(status().isNoContent());
+
+        // Проверяем удаление сквозным образом — повторный GET запрос обязан вернуть 404
+        mockMvc.perform(get("/api/v1/publishers/" + savedPublisher.getId()))
+                .andExpect(status().isNotFound());
     }
 
     @Test
     @DisplayName("DELETE /api/v1/publishers/{id} - Should return 403 when user is not ADMIN")
     @WithMockUser(roles = "USER")
     void deletePublisher_AsUser_ShouldReturnForbidden() throws Exception {
-        mockMvc.perform(delete("/api/v1/publishers/1").with(csrf()))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403));
+        mockMvc.perform(delete("/api/v1/publishers/" + savedPublisher.getId()).with(csrf()))
+                .andExpect(status().isForbidden());
+
+        // Проверяем через репозиторий, что издательство осталось нетронутым в PostgreSQL
+        assertThat(publisherRepository.existsById(savedPublisher.getId())).isTrue();
     }
 }

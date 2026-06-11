@@ -1,17 +1,12 @@
-package com.kvl.library.controller;
+package com.kvl.library.controller.ui;
 
-import com.kvl.library.controller.ui.IndexController;
+import com.kvl.library.controller.BaseWebContainersTest;
 import com.kvl.library.security.JwtRequestFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -19,19 +14,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-@WebMvcTest(IndexController.class)
-@ActiveProfiles("test")
-@DisplayName("IndexController Unit Tests")
-class IndexControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
+@DisplayName("IndexController Thymeleaf Integration Tests (PostgreSQL Testcontainers)")
+class IndexControllerContainersTest extends BaseWebContainersTest { // Наследуемся от нашего общего класса
 
     @MockitoBean
     private JwtRequestFilter jwtRequestFilter;
-
-    @MockitoBean
-    private UserDetailsService userDetailsService;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -46,7 +33,7 @@ class IndexControllerTest {
     }
 
     @Test
-    @DisplayName("GET / - Should return index template")
+    @DisplayName("GET / - Should return index template from full application context")
     @WithMockUser
     void showIndexPage_ShouldReturnIndexTemplate() throws Exception {
         mockMvc.perform(get("/"))

@@ -1,7 +1,6 @@
-package com.kvl.library.controller;
+package com.kvl.library.controller.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kvl.library.controller.api.AuthApiController;
 import com.kvl.library.dto.auth.UserLoginDto;
 import com.kvl.library.dto.auth.UserRegisterDto;
 import com.kvl.library.entity.User;

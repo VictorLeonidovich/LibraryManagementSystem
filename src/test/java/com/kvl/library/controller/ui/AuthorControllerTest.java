@@ -1,30 +1,42 @@
-package com.kvl.library.controller;
+package com.kvl.library.controller.ui;
 
 import com.kvl.library.entity.Author;
-import com.kvl.library.repository.AuthorRepository;
 import com.kvl.library.security.JwtRequestFilter;
+import com.kvl.library.service.AuthorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.Collections;
+
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@DisplayName("AuthorController Thymeleaf Integration Tests (PostgreSQL Testcontainers)")
-class AuthorControllerContainersTest extends BaseWebContainersTest {
+@WebMvcTest(AuthorController.class)
+@ActiveProfiles("test")
+@DisplayName("AuthorController Unit Tests")
+class AuthorControllerTest {
 
     @Autowired
-    private AuthorRepository authorRepository;
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private AuthorService authorService;
 
     @MockitoBean
     private JwtRequestFilter jwtRequestFilter;
@@ -32,19 +44,16 @@ class AuthorControllerContainersTest extends BaseWebContainersTest {
     @MockitoBean
     private UserDetailsService userDetailsService;
 
-    private Author savedAuthor;
+    private Author testAuthor;
 
     @BeforeEach
     void setUp() throws Exception {
-        // Базовый класс сам очистит все таблицы перед тестом
+        testAuthor = new Author();
+        testAuthor.setId(1L);
+        testAuthor.setName("Leo Tolstoy");
+        testAuthor.setDescription("Literature classic");
 
-        // Сохраняем реального автора в PostgreSQL через репозиторий
-        Author author = new Author();
-        author.setName("Leo Tolstoy");
-        author.setDescription("Literature classic");
-        savedAuthor = authorRepository.save(author);
-
-        // Пропуск JWT фильтра безопасности
+        // Обучаем публичный метод доходить до конца и вызывать следующую цепочку фильтров
         doAnswer(invocation -> {
             jakarta.servlet.ServletRequest request = invocation.getArgument(0);
             jakarta.servlet.ServletResponse response = invocation.getArgument(1);
@@ -55,9 +64,12 @@ class AuthorControllerContainersTest extends BaseWebContainersTest {
     }
 
     @Test
-    @DisplayName("GET /authors - Should return authors template with paginated data from PostgreSQL")
+    @DisplayName("GET /authors - Should return authors template with paginated data")
     @WithMockUser
     void findAllAuthors_ShouldReturnTemplateWithData() throws Exception {
+        Page<Author> authorPage = new PageImpl<>(Collections.singletonList(testAuthor));
+        when(authorService.findAllAuthors(any(Pageable.class))).thenReturn(authorPage);
+
         mockMvc.perform(get("/authors")
                         .param("page", "0")
                         .param("size", "5"))
@@ -68,61 +80,70 @@ class AuthorControllerContainersTest extends BaseWebContainersTest {
                 .andExpect(model().attribute("totalPages", 1))
                 .andExpect(model().attribute("totalItems", 1L))
                 .andExpect(model().attribute("size", 5));
+
+        verify(authorService, times(1)).findAllAuthors(any(Pageable.class));
     }
 
     @Test
-    @DisplayName("GET /remove-author/{id} - Should delete author from PostgreSQL and redirect to list")
+    @DisplayName("GET /remove-author/{id} - Should delete author and redirect to authors list")
     @WithMockUser
     void removeAuthor_ShouldDeleteAndRedirect() throws Exception {
-        mockMvc.perform(get("/remove-author/" + savedAuthor.getId()))
+        doNothing().when(authorService).deleteAuthor(1L);
+
+        mockMvc.perform(get("/remove-author/1"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/authors"));
 
-        // Честно проверяем в PostgreSQL, что автора больше нет
-        assertThat(authorRepository.existsById(savedAuthor.getId())).isFalse();
+        verify(authorService, times(1)).deleteAuthor(1L);
     }
 
     @Test
-    @DisplayName("GET /update-author/{id} - Should return update template with author data from PostgreSQL")
+    @DisplayName("GET /update-author/{id} - Should return update template with author data")
     @WithMockUser
     void updateAuthor_ShouldReturnUpdateForm() throws Exception {
-        mockMvc.perform(get("/update-author/" + savedAuthor.getId()))
+        when(authorService.findAuthorById(1L)).thenReturn(testAuthor);
+
+        mockMvc.perform(get("/update-author/1"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("update-author"))
-                .andExpect(model().attributeExists("author"));
+                .andExpect(model().attribute("author", testAuthor));
+
+        verify(authorService, times(1)).findAuthorById(1L);
     }
 
     @Test
-    @DisplayName("POST /save-author/{id} - Should update author in PostgreSQL and redirect when data is valid")
+    @DisplayName("POST /save-author/{id} - Should update author and redirect when data is valid")
     @WithMockUser
     void updateAuthor_ShouldSaveAndRedirect_WhenValid() throws Exception {
-        mockMvc.perform(post("/save-author/" + savedAuthor.getId())
+        doNothing().when(authorService).updateAuthor(any(Author.class));
+
+        mockMvc.perform(post("/save-author/1")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("id", savedAuthor.getId().toString())
+                        .param("id", "1")
                         .param("name", "Anton Chekhov")
                         .param("description", "Famous playwright"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/authors"));
 
-        // Дополнительно проверяем, что в базе PostgreSQL имя действительно обновилось
-        Author updatedAuthor = authorRepository.findById(savedAuthor.getId()).orElseThrow();
-        assertThat(updatedAuthor.getName()).isEqualTo("Anton Chekhov");
+        verify(authorService, times(1)).updateAuthor(any(Author.class));
     }
 
     @Test
     @DisplayName("POST /save-author/{id} - Should return update template when validation fails")
     @WithMockUser
     void updateAuthor_ShouldReturnUpdateForm_WhenInvalid() throws Exception {
-        mockMvc.perform(post("/save-author/" + savedAuthor.getId())
+        mockMvc.perform(post("/save-author/1")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("id", savedAuthor.getId().toString())
-                        .param("name", "") // Пустое имя триггерит Jakarta Validation
+                        .param("id", "1")
+                        .param("name", "")
                         .param("description", "Some description"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("update-author"))
                 .andExpect(model().hasErrors());
+
+        verify(authorService, never()).updateAuthor(any(Author.class));
     }
 
     @Test
@@ -136,9 +157,11 @@ class AuthorControllerContainersTest extends BaseWebContainersTest {
     }
 
     @Test
-    @DisplayName("POST /save-author - Should create author in PostgreSQL and redirect when data is valid")
+    @DisplayName("POST /save-author - Should create author and redirect when data is valid")
     @WithMockUser
     void saveAuthor_ShouldCreateAndRedirect_WhenValid() throws Exception {
+        doNothing().when(authorService).createAuthor(any(Author.class));
+
         mockMvc.perform(post("/save-author")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -146,6 +169,8 @@ class AuthorControllerContainersTest extends BaseWebContainersTest {
                         .param("description", "Great writer"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/authors"));
+
+        verify(authorService, times(1)).createAuthor(any(Author.class));
     }
 
     @Test
@@ -155,10 +180,12 @@ class AuthorControllerContainersTest extends BaseWebContainersTest {
         mockMvc.perform(post("/save-author")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("name", "") // Нарушает @NotEmpty
-                        .param("description", "Great writer"))
+                        .param("name", "")
+                        .param("description", "Great writer")) // Ошибка валидации
                 .andExpect(status().isOk())
                 .andExpect(view().name("add-author"))
                 .andExpect(model().hasErrors());
+
+        verify(authorService, never()).createAuthor(any(Author.class));
     }
 }

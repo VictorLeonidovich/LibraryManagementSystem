@@ -1,6 +1,5 @@
-package com.kvl.library.model;
+package com.kvl.library.entity;
 
-import com.kvl.library.entity.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.GrantedAuthority;
