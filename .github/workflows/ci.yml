@@ -1,0 +1,51 @@
+name: Java CI/CD Pipeline with Testcontainers
+
+on:
+  push:
+    branches: [ "main", "master", "develop" ]
+  pull_request:
+    branches: [ "main", "master", "develop" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Клонируем исходный код репозитория
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # 2. Настраиваем JDK 17 (Eclipse Temurin) с кэшированием зависимостей
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # 3. Запускаем ВСЕ тесты (Юнит-тесты на H2 и Интеграционные тесты на Testcontainers).
+      # Активируем Maven-профиль -Pprod, чтобы подтянуть драйвер PostgreSQL.
+      # Спринг сам будет переключать профили среды ("test" или "containers") на основе аннотаций @ActiveProfiles в коде.
+      - name: Build and Run All Tests via Maven
+        run: mvn clean verify -Pprod -B
+
+      # 4. Проверка JaCoCo: парсит суммарный CSV отчет и валит пайплайн, если покрытие < 70%
+      # Он учтет покрытие и от юнит-тестов, и от контейнерных интеграционных тестов.
+      - name: Validate JaCoCo Code Coverage Threshold (70%)
+        uses: cicirello/jacoco-badge-generator@v2
+        with:
+          jacoco-csv-file: target/site/jacoco/jacoco.csv
+          fail-if-coverage-less-than: 70
+          generate-coverage-badge: false
+          generate-branches-badge: false
+
+      # 5. Сохраняем отчеты тестирования в артефакты GitHub (доступны 7 дней)
+      - name: Upload Test Coverage Reports
+        if: always() # Выполняется в любом случае, чтобы можно было изучить логи упавших тестов
+        uses: actions/upload-artifact@v4
+        with:
+          name: library-test-reports
+          path: |
+            target/surefire-reports/
+            target/site/jacoco/
+          retention-days: 7
