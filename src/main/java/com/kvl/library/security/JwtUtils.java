@@ -3,6 +3,7 @@ package com.kvl.library.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -15,18 +16,22 @@ import java.util.function.Function;
 public class JwtUtils {
 
     // Секретный ключ должен быть длинным (не менее 32 символов)
-    private final String SECRET_KEY = "my-super-safe-and-ultra-long-secret-key-specifically-for-library-system-2026";
-    private final long EXPIRATION_TIME = 1000 * 60 * 60 * 10L; // 10 часов
+    @Value("${app.jwt.secret:my-super-safe-and-ultra-long-secret-key-specifically-for-library-system-2026}")
+    private String secretKey;
+
+    // Время жизни токена (дефолт: 36000000 мс = 10 часов)
+    @Value("${app.jwt.expiration:36000000}")
+    private long expirationTime;
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+        return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(String username) {
         return Jwts.builder()
                 .subject(username)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .expiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSigningKey())
                 .compact();
     }

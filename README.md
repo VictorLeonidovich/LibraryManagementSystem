@@ -111,3 +111,32 @@
 В целях безопасности доступ к инфраструктуре строго ограничен (`management.endpoints.web.exposure.include=health,info`).
 * Открыты только эндпоинты **`/actuator/health`** и **`/actuator/info`**.
 * Отображение внутренней структуры и деталей подключения к PostgreSQL полностью скрыто (`show-details=never`) для предотвращения утечки данных об архитектуре сервера.
+
+---
+
+## 🚀 Быстрый запуск в Docker (Production Mode)
+
+Для развертывания всего стека (Spring Boot + PostgreSQL 16 + автоматические миграции Liquibase) вам понадобится только установленный **Docker Desktop**.
+
+1. **Настройте окружение:**
+   Создайте файл `.env` в корневом каталоге проекта и заполните своими данными (шаблон):
+   ```text
+   DB_NAME=library_db
+   DB_USER=postgres
+   DB_PASSWORD=your_secure_password
+   DB_PORT=5432
+   APP_PORT=8080
+   JWT_SECRET=your_ultra_long_random_secret_key_here
+   JWT_EXPIRATION=36000000
+   ```
+
+2. **Запустите контейнеры:**
+   Выполните команду в терминале:
+   ```bash
+   docker-compose up --build -d
+   ```
+
+3. **Проверьте статус:**
+  * Приложение будет доступно по адресу: `http://localhost:8080`
+  * Документация Swagger UI: `http://localhost:8080/swagger-ui.html`
+  * Посмотреть логи приложения: `docker-compose logs -f library-app`
