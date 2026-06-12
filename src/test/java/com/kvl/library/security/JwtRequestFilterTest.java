@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -41,6 +42,9 @@ class JwtRequestFilterTest {
     void setUp() throws IOException {
         SecurityContextHolder.clearContext();
         jwtUtils = new JwtUtils();
+        // ВРУЧНУЮ ЗАПОЛНЯЕМ @Value ПОЛЯ ЧЕРЕЗ РЕФЛЕКСИЮ ДЛЯ ТЕСТА
+        ReflectionTestUtils.setField(jwtUtils, "secretKey", "my-super-safe-and-ultra-long-secret-key-specifically-for-library-system-2026");
+        ReflectionTestUtils.setField(jwtUtils, "expirationTime", 36000000L);
         userDetailsService = mock(UserDetailsService.class);
         jwtRequestFilter = new JwtRequestFilter(jwtUtils, userDetailsService);
 
