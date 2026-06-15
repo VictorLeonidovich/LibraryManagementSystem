@@ -8,13 +8,19 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Главный класс конфигурации безопасности приложения.
+ * <p>
+ * Настраивает цепочку фильтров безопасности (SecurityFilterChain) для одновременной
+ * поддержки Stateless REST API (на основе JWT) и Stateful Web UI (Thymeleaf).
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity // Включает поддержку аннотаций @PreAuthorize
@@ -22,53 +28,62 @@ public class SecurityConfig {
 
     private final JwtRequestFilter jwtRequestFilter;
 
+    /**
+     * Конструктор для внедрения зависимостей.
+     *
+     * @param jwtRequestFilter кастомный JWT фильтр аутентификации
+     */
     public SecurityConfig(JwtRequestFilter jwtRequestFilter) {
         this.jwtRequestFilter = jwtRequestFilter;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Отключаем CSRF для REST API, так как токены защищены от CSRF-атак
-                .csrf(AbstractHttpConfigurer::disable)
+                // 1. Настройка защиты CSRF
+                .csrf(csrf -> csrf
+                        // Отключаем CSRF для REST API и консоли H2
+                        .ignoringRequestMatchers("/api/**", "/h2-console/**")
+                )
 
-                // Настройка прав доступа к URL
+                // 2. Настройка заголовков (Разрешаем фреймы для H2-консоли внутри одного домена)
+                .headers(headers -> headers
+                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
+                )
+
+                // 3. Настройка прав доступа к URL ресурсам
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Открытый доступ для авторизации и документации Swagger
+                        // Сначала объявляем все публичные технические эндпоинты обычными строками
+                        .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
-                        // 2. Ограничение по ролям на уровне URL (Важно: без префикса ROLE_)
-                        // Разрешаем удаление, создание и обновление только для ADMIN
+                        // Ограничение прав для REST API бизнес-логики по HTTP методам
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/**").hasRole("ADMIN")
-
-                        // Чтение данных (GET) доступно и USER, и ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAnyRole("USER", "ADMIN")
 
-                        // 3. Все остальные запросы к API должны быть просто аутентифицированы
-                        .requestMatchers("/api/**").authenticated()    // Все остальные REST API требуют JWT
-                        .requestMatchers("/h2-console/**").permitAll() // Разрешаем доступ к консоли H2
-                        .anyRequest().permitAll()                        // Разрешаем доступ к Thymeleaf страницам
+                        // Все остальные запросы к REST API требуют обязательный токен JWT
+                        .requestMatchers("/api/**").authenticated()
+
+                        // Разрешаем свободный доступ к Thymeleaf UI контроллерам и статике (CSS, JS)
+                        .anyRequest().permitAll()
                 )
 
-                // Разрешаем отображение интерфейса H2 в frame-структурах
-                //.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-
-                // Для REST API отключаем хранение сессий на сервере
+                // 4. Переводим сессии управления в режим STATELESS (не сохраняем контекст на сервере)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // Добавляем наш JWT фильтр перед стандартным UsernamePasswordAuthenticationFilter
+                // 5. Интегрируем наш JWT фильтр проверки подлинности перед стандартным фильтром
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
