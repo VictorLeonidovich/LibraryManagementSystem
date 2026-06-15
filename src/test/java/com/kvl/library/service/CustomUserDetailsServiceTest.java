@@ -2,6 +2,7 @@ package com.kvl.library.service;
 
 import com.kvl.library.entity.User;
 import com.kvl.library.repository.UserRepository;
+import com.kvl.library.service.impl.CustomUserDetailsServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ class CustomUserDetailsServiceTest {
     private UserRepository userRepository;
 
     @InjectMocks
-    private CustomUserDetailsService customUserDetailsService;
+    private CustomUserDetailsServiceImpl customUserDetailsService;
 
     private final String username = "testUser";
     private User testUser;

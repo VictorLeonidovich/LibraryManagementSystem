@@ -4,6 +4,7 @@ package com.kvl.library.service;
 import com.kvl.library.entity.Book;
 import com.kvl.library.exception.EntityNotFoundException;
 import com.kvl.library.repository.BookRepository;
+import com.kvl.library.service.impl.BookServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,7 @@ class BookServiceTest {
     private BookRepository bookRepository;
 
     @InjectMocks
-    private BookService bookService;
+    private BookServiceImpl bookService;
 
     private Book testBook;
     private final Long bookId = 1L;

@@ -1,78 +1,81 @@
 package com.kvl.library.service;
 
 import com.kvl.library.entity.Author;
-import com.kvl.library.exception.EntityNotFoundException;
-import com.kvl.library.repository.AuthorRepository;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Slf4j
-@Service
-public class AuthorService {
-    private final AuthorRepository authorRepository;
+/**
+ * Сервис для управления авторами книг.
+ */
+public interface AuthorService {
 
-    public AuthorService(AuthorRepository authorRepository) {
-        this.authorRepository = authorRepository;
-    }
-
+    /**
+     * Получить полный список всех авторов без пагинации.
+     * Используется в основном для выпадающих списков (dropdown) в UI.
+     *
+     * @return список всех авторов
+     */
     @Transactional(readOnly = true)
-    public List<Author> findAllAuthors() {
-        log.info("Fetching all authors as a list for relational select dropdowns");
-        return authorRepository.findAll();
-    }
+    List<Author> findAllAuthors();
 
-    // 1. Пагинация для общего списка (readOnly транзакция)
+    /**
+     * Получить страницу авторов.
+     * Используется для постраничного вывода общего списка авторов в REST API или UI.
+     *
+     * @param pageable параметры пагинации и сортировки
+     * @return страница с авторами
+     */
     @Transactional(readOnly = true)
-    public Page<Author> findAllAuthors(Pageable pageable) {
-        log.info("Fetching a page of authors from the database");
-        return authorRepository.findAll(pageable);
-    }
+    Page<Author> findAllAuthors(Pageable pageable);
 
-    // 2. Использование кастомного запроса с пагинацией
+    /**
+     * Поиск авторов по имени с поддержкой пагинации.
+     * Поиск нечувствителен к регистру символов.
+     *
+     * @param name     строка для поиска в имени автора
+     * @param pageable параметры пагинации и сортировки
+     * @return страница с найденными авторами
+     */
     @Transactional(readOnly = true)
-    public Page<Author> searchAuthorsByName(String name, Pageable pageable) {
-        log.info("Searching authors by name containing '{}'", name);
-        return authorRepository.findByNameContainingIgnoreCase(name, pageable);
-    }
+    Page<Author> searchAuthorsByName(String name, Pageable pageable);
 
+    /**
+     * Найти автора по его уникальному идентификатору.
+     *
+     * @param id уникальный идентификатор автора
+     * @return найденный автор
+     * @throws com.kvl.library.exception.EntityNotFoundException если автор с таким ID не найден
+     */
     @Transactional(readOnly = true)
-    public Author findAuthorById(final Long id) {
-        Author author = findById(id);
-        log.info("Fetched author '{}' by id '{}' from the database", author, id);
-        return author;
-    }
+    Author findAuthorById(Long id);
 
-    private Author findById(final Long id) {
-        return authorRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Author with ID " + id + " was not found"));
-    }
-
-    // Изменяющие методы требуют полноценную пишущую транзакцию
+    /**
+     * Создать и сохранить нового автора.
+     *
+     * @param author сущность нового автора для сохранения
+     */
     @Transactional
-    public void createAuthor(final Author author) {
-        log.info("Saving author '{}' to the database", author);
-        authorRepository.save(author);
-    }
+    void createAuthor(Author author);
 
+    /**
+     * Обновить данные существующего автора.
+     * Перед обновлением выполняется проверка существования сущности в БД.
+     *
+     * @param author сущность автора с обновленными данными
+     * @throws com.kvl.library.exception.EntityNotFoundException если автора с таким ID нет в базе данных
+     */
     @Transactional
-    public void updateAuthor(final Author author) {
-        log.info("Updating author '{}' in the database", author);
-        // Проверяем существование перед обновлением, чтобы случайно не сделать INSERT
-        if (!authorRepository.existsById(author.getId())) {
-            throw new EntityNotFoundException("Author with ID " + author.getId() + " was not found");
-        }
-        authorRepository.save(author);
-    }
+    void updateAuthor(Author author);
 
+    /**
+     * Удалить автора по его уникальному идентификатору.
+     *
+     * @param id уникальный идентификатор автора для удаления
+     * @throws com.kvl.library.exception.EntityNotFoundException если автор с таким ID не найден
+     */
     @Transactional
-    public void deleteAuthor(final Long id) {
-        final Author author = findById(id);
-        log.info("Deleting author '{}' by id '{}' from the database", author, id);
-        authorRepository.deleteById(author.getId());
-    }
+    void deleteAuthor(Long id);
 }

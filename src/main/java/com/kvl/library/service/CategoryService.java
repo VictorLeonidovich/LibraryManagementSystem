@@ -1,78 +1,85 @@
 package com.kvl.library.service;
 
 import com.kvl.library.entity.Category;
-import com.kvl.library.exception.EntityNotFoundException;
-import com.kvl.library.repository.CategoryRepository;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Slf4j
-@Service
-public class CategoryService {
-    private final CategoryRepository categoryRepository;
+/**
+ * Сервис для управления категориями (жанрами) книг в библиотечной системе.
+ * Обеспечивает бизнес-логику распределения книг по тематическим разделам.
+ */
+public interface CategoryService {
 
-    public CategoryService(CategoryRepository categoryRepository) {
-        this.categoryRepository = categoryRepository;
-    }
-
-    // Для Thymeleaf UI (обычный список)
+    /**
+     * Получить полный список всех категорий без пагинации.
+     * Применяется для рендеринга классических MVC веб-интерфейсов (Thymeleaf UI),
+     * а также для наполнения выпадающих списков выбора жанра при создании или редактировании книг.
+     *
+     * @return список всех доступных категорий
+     */
     @Transactional(readOnly = true)
-    public List<Category> findAllCategories() {
-        log.info("Fetching all categories as a list for MVC interface");
-        return categoryRepository.findAll();
-    }
+    List<Category> findAllCategories();
 
-    // 1. Пагинация для общего списка REST (readOnly транзакция)
+    /**
+     * Получить страницу категорий с учетом параметров пагинации.
+     * Применяется для постраничного отображения древа категорий или плоских таблиц в REST API.
+     *
+     * @param pageable параметры пагинации, смещения и сортировки данных
+     * @return страница с объектами категорий
+     */
     @Transactional(readOnly = true)
-    public Page<Category> findAllCategories(Pageable pageable) {
-        log.info("Fetching a page of categories from the database");
-        return categoryRepository.findAll(pageable);
-    }
+    Page<Category> findAllCategories(Pageable pageable);
 
-    // 2. Использование кастомного запроса с пагинацией для REST
+    /**
+     * Поиск категорий по текстовому совпадению в названии с поддержкой пагинации.
+     * Поиск выполняется по частичному вхождению строки (LIKE) и нечувствителен к регистру (IgnoreCase).
+     *
+     * @param name     строка или ключевое слово для поиска в названии категории
+     * @param pageable параметры пагинации и направления сортировки результатов
+     * @return страница с найденными категориями, удовлетворяющими критерию поиска
+     */
     @Transactional(readOnly = true)
-    public Page<Category> searchCategoriesByName(String name, Pageable pageable) {
-        log.info("Searching categories by name containing '{}'", name);
-        return categoryRepository.findByNameContainingIgnoreCase(name, pageable);
-    }
+    Page<Category> searchCategoriesByName(String name, Pageable pageable);
 
+    /**
+     * Найти конкретную категорию по её уникальному идентификатору.
+     *
+     * @param id уникальный числовой идентификатор категории в базе данных
+     * @return найденная сущность категории
+     * @throws com.kvl.library.exception.EntityNotFoundException если категория с указанным ID отсутствует в системе
+     */
     @Transactional(readOnly = true)
-    public Category findCategoryById(final Long id) {
-        Category category = findById(id);
-        log.info("Fetched category '{}' by id '{}' from the database", category, id);
-        return category;
-    }
+    Category findCategoryById(Long id);
 
-    private Category findById(final Long id) {
-        return categoryRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Category with ID " + id + " was not found"));
-    }
-
+    /**
+     * Создать и сохранить новую категорию (жанр) в системе.
+     *
+     * @param category объект новой категории для персистенции
+     */
     @Transactional
-    public void createCategory(final Category category) {
-        log.info("Saving category '{}' to the database", category);
-        categoryRepository.save(category);
-    }
+    void createCategory(Category category);
 
+    /**
+     * Обновить метаданные существующей в базе данных категории.
+     * Метод включает обязательную предварительную валидацию идентификатора (предохранитель),
+     * исключающую случайное дублирование или создание новой записи (INSERT) вместо перезаписи.
+     *
+     * @param category объект категории с измененными полями и заполненным ID
+     * @throws com.kvl.library.exception.EntityNotFoundException если обновляемая категория не найдена по ID
+     */
     @Transactional
-    public void updateCategory(final Category category) {
-        log.info("Updating category '{}' in the database", category);
-        // Предохранитель от нежелательного INSERT при обновлении
-        if (!categoryRepository.existsById(category.getId())) {
-            throw new EntityNotFoundException("Category with ID " + category.getId() + " was not found");
-        }
-        categoryRepository.save(category);
-    }
+    void updateCategory(Category category);
 
+    /**
+     * Удалить категорию из системы по её уникальному идентификатору.
+     * Перед удалением производится транзакционная проверка фактического существования записи в БД.
+     *
+     * @param id уникальный идентификатор категории, подлежащей удалению
+     * @throws com.kvl.library.exception.EntityNotFoundException если удаляемая категория не найдена в системе
+     */
     @Transactional
-    public void deleteCategory(final Long id) {
-        final Category category = findById(id);
-        log.info("Deleting category '{}' by id '{}' from the database", category, id);
-        categoryRepository.deleteById(category.getId());
-    }
+    void deleteCategory(Long id);
 }

@@ -1,78 +1,81 @@
 package com.kvl.library.service;
 
 import com.kvl.library.entity.Book;
-import com.kvl.library.exception.EntityNotFoundException;
-import com.kvl.library.repository.BookRepository;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Slf4j
-@Service
-public class BookService {
-    private final BookRepository bookRepository;
+/**
+ * Сервис для управления книгами в библиотечной системе.
+ */
+public interface BookService {
 
-    public BookService(BookRepository bookRepository) {
-        this.bookRepository = bookRepository;
-    }
-
-    // Для классического MVC (Thymeleaf UI)
+    /**
+     * Получить полный список всех книг без пагинации.
+     * Применяется для классического MVC-интерфейса (Thymeleaf UI).
+     *
+     * @return список всех книг
+     */
     @Transactional(readOnly = true)
-    public List<Book> findAllBooks() {
-        log.info("Fetching all books from the database");
-        return bookRepository.findAll();
-    }
+    List<Book> findAllBooks();
 
-    // 1. Пагинация общего списка для REST API
+    /**
+     * Получить страницу книг.
+     * Применяется для постраничного отображения каталога книг в REST API.
+     *
+     * @param pageable параметры пагинации и сортировки
+     * @return страница с книгами
+     */
     @Transactional(readOnly = true)
-    public Page<Book> findAllBooks(Pageable pageable) {
-        log.info("Fetching a page of books from the database");
-        return bookRepository.findAll(pageable);
-    }
+    Page<Book> findAllBooks(Pageable pageable);
 
-    // 2. Поиск по кастомному запросу (название/ISBN) с пагинацией для REST API
+    /**
+     * Поиск книг по ключевому слову с пагинацией.
+     * Поиск осуществляется по совпадению в названии книги или её коде ISBN.
+     *
+     * @param keyword  ключевое слово для поиска (название или ISBN)
+     * @param pageable параметры пагинации и сортировки
+     * @return страница с найденными книгами
+     */
     @Transactional(readOnly = true)
-    public Page<Book> searchBooks(String keyword, Pageable pageable) {
-        log.info("Searching books by keyword '{}'", keyword);
-        return bookRepository.searchByNameOrIsbn(keyword, pageable);
-    }
+    Page<Book> searchBooks(String keyword, Pageable pageable);
 
+    /**
+     * Найти книгу по её уникальному идентификатору.
+     *
+     * @param id уникальный идентификатор книги
+     * @return найденная книга
+     * @throws com.kvl.library.exception.EntityNotFoundException если книга с таким ID не найдена
+     */
     @Transactional(readOnly = true)
-    public Book findBookById(final Long id) {
-        Book book = findById(id);
-        log.info("Fetched book '{}' by id '{}' from the database", book, id);
-        return book;
-    }
+    Book findBookById(Long id);
 
-    private Book findById(final Long id) {
-        return bookRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Book with ID " + id + " was not found"));
-    }
-
+    /**
+     * Создать и сохранить новую книгу.
+     *
+     * @param book сущность новой книги для сохранения
+     */
     @Transactional
-    public void createBook(final Book book) {
-        log.info("Saving book '{}' to the database", book);
-        bookRepository.save(book);
-    }
+    void createBook(Book book);
 
+    /**
+     * Обновить данные существующей книги.
+     * Содержит предохранитель от нежелательного INSERT при отправке веб-форм.
+     *
+     * @param book сущность книги с обновленными данными
+     * @throws com.kvl.library.exception.EntityNotFoundException если книга с таким ID нет в базе данных
+     */
     @Transactional
-    public void updateBook(final Book book) {
-        log.info("Updating book '{}' in the database", book);
-        // Предохранитель от нежелательного INSERT при обновлении формы
-        if (!bookRepository.existsById(book.getId())) {
-            throw new EntityNotFoundException("Book with ID " + book.getId() + " was not found");
-        }
-        bookRepository.save(book);
-    }
+    void updateBook(Book book);
 
+    /**
+     * Удалить книгу по её уникальному идентификатору.
+     *
+     * @param id уникальный идентификатор книги для удаления
+     * @throws com.kvl.library.exception.EntityNotFoundException если книга с таким ID не найдена
+     */
     @Transactional
-    public void deleteBook(final Long id) {
-        final Book book = findById(id);
-        log.info("Deleting book '{}' by id '{}' from the database", book, id);
-        bookRepository.deleteById(book.getId());
-    }
+    void deleteBook(Long id);
 }

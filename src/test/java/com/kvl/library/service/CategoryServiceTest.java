@@ -3,6 +3,7 @@ package com.kvl.library.service;
 import com.kvl.library.entity.Category;
 import com.kvl.library.exception.EntityNotFoundException;
 import com.kvl.library.repository.CategoryRepository;
+import com.kvl.library.service.impl.CategoryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ class CategoryServiceTest {
     private CategoryRepository categoryRepository;
 
     @InjectMocks
-    private CategoryService categoryService;
+    private CategoryServiceImpl categoryService;
 
     private Category testCategory;
     private final Long categoryId = 1L;

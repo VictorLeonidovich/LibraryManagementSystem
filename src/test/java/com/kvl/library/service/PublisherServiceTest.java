@@ -3,6 +3,7 @@ package com.kvl.library.service;
 import com.kvl.library.entity.Publisher;
 import com.kvl.library.exception.EntityNotFoundException;
 import com.kvl.library.repository.PublisherRepository;
+import com.kvl.library.service.impl.PublisherServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,7 @@ class PublisherServiceTest {
     private PublisherRepository publisherRepository;
 
     @InjectMocks
-    private PublisherService publisherService;
+    private PublisherServiceImpl publisherService;
 
     private Publisher testPublisher;
     private final Long publisherId = 1L;

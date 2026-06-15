@@ -1,78 +1,84 @@
 package com.kvl.library.service;
 
 import com.kvl.library.entity.Publisher;
-import com.kvl.library.exception.EntityNotFoundException;
-import com.kvl.library.repository.PublisherRepository;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Slf4j
-@Service
-public class PublisherService {
-    private final PublisherRepository publisherRepository;
+/**
+ * Сервис для управления издательствами книг в библиотечной системе.
+ * Отвечает за обеспечение бизнес-логики учета и актуализации данных компаний-издателей.
+ */
+public interface PublisherService {
 
-    public PublisherService(PublisherRepository publisherRepository) {
-        this.publisherRepository = publisherRepository;
-    }
-
-    // Для классического интерфейса Thymeleaf UI
+    /**
+     * Получить полный список всех издательств без пагинации.
+     * Используется для построения выпадающих списков выбора в MVC-интерфейсе (Thymeleaf UI).
+     *
+     * @return список всех зарегистрированных издательств
+     */
     @Transactional(readOnly = true)
-    public List<Publisher> findAllPublishers() {
-        log.info("Fetching all publishers as a list for MVC interface");
-        return publisherRepository.findAll();
-    }
+    List<Publisher> findAllPublishers();
 
-    // 1. Пагинация общего списка для REST API
+    /**
+     * Получить страницу издательств с учетом параметров пагинации.
+     * Применяется для постраничного отображения каталога контрагентов в REST API.
+     *
+     * @param pageable параметры пагинации, смещения и направления сортировки
+     * @return страница с объектами издательств
+     */
     @Transactional(readOnly = true)
-    public Page<Publisher> findAllPublishers(Pageable pageable) {
-        log.info("Fetching a page of publishers from the database");
-        return publisherRepository.findAll(pageable);
-    }
+    Page<Publisher> findAllPublishers(Pageable pageable);
 
-    // 2. Поиск по кастомному запросу с пагинацией для REST API
+    /**
+     * Поиск издательств по названию с поддержкой пагинации.
+     * Поиск выполняется по частичному совпадению и нечувствителен к регистру символов.
+     *
+     * @param name     строка или ключевое слово для поиска в названии издательства
+     * @param pageable параметры пагинации и сортировки результатов
+     * @return страница с найденными издательствами
+     */
     @Transactional(readOnly = true)
-    public Page<Publisher> searchPublishersByName(String name, Pageable pageable) {
-        log.info("Searching publishers by name containing '{}'", name);
-        return publisherRepository.findByNameContainingIgnoreCase(name, pageable);
-    }
+    Page<Publisher> searchPublishersByName(String name, Pageable pageable);
 
+    /**
+     * Найти конкретное издательство по его уникальному идентификатору.
+     *
+     * @param id уникальный числовой идентификатор издательства в базе данных
+     * @return найденная сущность издательства
+     * @throws com.kvl.library.exception.EntityNotFoundException если запись с указанным ID отсутствует в системе
+     */
     @Transactional(readOnly = true)
-    public Publisher findPublisherById(final Long id) {
-        Publisher publisher = findById(id);
-        log.info("Fetched publisher '{}' by id '{}' from the database", publisher, id);
-        return publisher;
-    }
+    Publisher findPublisherById(Long id);
 
-    private Publisher findById(final Long id) {
-        return publisherRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Publisher with ID " + id + " was not found"));
-    }
-
+    /**
+     * Создать и сохранить новое издательство в системе.
+     *
+     * @param publisher объект нового издательства для персистенции
+     */
     @Transactional
-    public void createPublisher(final Publisher publisher) {
-        log.info("Saving publisher '{}' to the database", publisher);
-        publisherRepository.save(publisher);
-    }
+    void createPublisher(Publisher publisher);
 
+    /**
+     * Обновить данные существующего в базе данных издательства.
+     * Содержит обязательную предварительную валидацию идентификатора (предохранитель),
+     * исключающую случайное дублирование записей.
+     *
+     * @param publisher объект издательства с измененными полями и заполненным ID
+     * @throws com.kvl.library.exception.EntityNotFoundException если обновляемое издательство не найдено по ID
+     */
     @Transactional
-    public void updatePublisher(final Publisher publisher) {
-        log.info("Updating publisher '{}' in the database", publisher);
-        // Защита от нежелательного INSERT
-        if (!publisherRepository.existsById(publisher.getId())) {
-            throw new EntityNotFoundException("Publisher with ID " + publisher.getId() + " was not found");
-        }
-        publisherRepository.save(publisher);
-    }
+    void updatePublisher(Publisher publisher);
 
+    /**
+     * Удалить издательство из системы по его уникальному идентификатору.
+     * Перед удалением производится транзакционная проверка фактического существования записи в БД.
+     *
+     * @param id уникальный идентификатор издательства, подлежащего удалению
+     * @throws com.kvl.library.exception.EntityNotFoundException если удаляемое издательство не найдено в системе
+     */
     @Transactional
-    public void deletePublisher(final Long id) {
-        final Publisher publisher = findById(id);
-        log.info("Deleting publisher '{}' by id '{}' from the database", publisher, id);
-        publisherRepository.deleteById(publisher.getId());
-    }
+    void deletePublisher(Long id);
 }
