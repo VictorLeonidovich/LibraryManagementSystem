@@ -12,6 +12,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.function.Function;
 
+/**
+ * Утилитарный компонент для работы с JSON Web Tokens (JWT).
+ * <p>
+ * Отвечает за генерацию, парсинг, извлечение утверждений (claims) и криптографическую
+ * проверку подписи токенов на основе библиотеки JJWT.
+ */
 @Component
 public class JwtUtils {
 
@@ -23,10 +29,19 @@ public class JwtUtils {
     @Value("${app.jwt.expiration:36000000}")
     private long expirationTime;
 
+    /**
+     * Формирует безопасный секретный ключ HMAC-SHA на основе строковой конфигурации.
+     */
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * Генерирует новый JWT-токен для пользователя.
+     *
+     * @param username имя (логин) пользователя
+     * @return строка JWT-токена
+     */
     public String generateToken(String username) {
         return Jwts.builder()
                 .subject(username)
@@ -53,6 +68,9 @@ public class JwtUtils {
                 .getPayload();
     }
 
+    /**
+     * Проверяет валидность токена: совпадение имени и отсутствие истечения срока действия.
+     */
     public boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));

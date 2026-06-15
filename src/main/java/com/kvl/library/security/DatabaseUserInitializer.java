@@ -2,11 +2,20 @@ package com.kvl.library.security;
 
 import com.kvl.library.entity.User;
 import com.kvl.library.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Инициализатор пользователей в базе данных.
+ * <p>
+ * Срабатывает при старте или обновлении контекста приложения. Гарантирует наличие
+ * базовых учетных записей (администратора и пользователя) для первоначального входа.
+ */
+@Slf4j
 @Component
 public class DatabaseUserInitializer implements ApplicationListener<ContextRefreshedEvent> {
 
@@ -19,23 +28,32 @@ public class DatabaseUserInitializer implements ApplicationListener<ContextRefre
     }
 
     @Override
+    @Transactional
     public void onApplicationEvent(ContextRefreshedEvent event) {
-        // Проверяем админа. Если нет — создаем, если есть — гарантируем правильный хэш
-        User admin = userRepository.findByUsername("admin").orElse(new User());
+        initializeDefaultUser("admin", "password", "ROLE_ADMIN");
+        initializeDefaultUser("user", "password", "ROLE_USER");
+    }
 
-        admin.setUsername("admin");
-        // Генерируем хэш "на лету" именно тем энкодером, который сейчас активен в SecurityConfig
-        admin.setPassword(passwordEncoder.encode("password"));
-        admin.setRole("ROLE_ADMIN");
+    /**
+     * Создает учетную запись по умолчанию, если она отсутствует в системе.
+     *
+     * @param username имя пользователя
+     * @param defaultPassword незахешированный дефолтный пароль
+     * @param role роль в формате "ROLE_XXX"
+     */
+    private void initializeDefaultUser(String username, String defaultPassword, String role) {
+        if (!userRepository.findByUsername(username).isPresent()) {
+            log.info("Default user '{}' not found. Initializing with role '{}'...", username, role);
 
-        userRepository.save(admin);
+            User user = new User();
+            user.setUsername(username);
+            user.setPassword(passwordEncoder.encode(defaultPassword));
+            user.setRole(role);
 
-        // То же самое для обычного пользователя
-        User user = userRepository.findByUsername("user").orElse(new User());
-        user.setUsername("user");
-        user.setPassword(passwordEncoder.encode("password"));
-        user.setRole("ROLE_USER");
-
-        userRepository.save(user);
+            userRepository.save(user);
+            log.info("Default user '{}' successfully created.", username);
+        } else {
+            log.debug("User '{}' already exists. Skipping initialization to prevent password overwrites.", username);
+        }
     }
 }

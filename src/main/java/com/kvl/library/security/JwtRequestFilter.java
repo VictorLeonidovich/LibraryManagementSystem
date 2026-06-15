@@ -6,6 +6,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,6 +19,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Перехватчик (Фильтр) REST API запросов для валидации JWT-токенов.
+ * <p>
+ * Извлекает заголовок Authorization, проверяет подпись токена и интегрирует
+ * аутентифицированного пользователя в контекст безопасности Spring Security.
+ */
+@Slf4j
 @Component
 public class JwtRequestFilter extends OncePerRequestFilter {
 
@@ -63,13 +71,18 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         } catch (ExpiredJwtException e) {
             // Перехватываем просроченный токен и отдаем клиенту JSON 401
+            log.warn("Attempt to access with expired JWT token at [{}]: {}", request.getRequestURI(), e.getMessage());
             handleJwtException(response, HttpStatus.UNAUTHORIZED, "JWT token has expired");
         } catch (JwtException e) {
             // Перехватываем невалидную подпись/формат токена и отдаем JSON 400
+            log.error("Invalid JWT credentials token anomaly detected at [{}]: {}", request.getRequestURI(), e.getMessage());
             handleJwtException(response, HttpStatus.BAD_REQUEST, "Invalid JWT token signature or format");
         }
     }
 
+    /**
+     * Ручное формирование JSON-структуры ошибки в обход Spring MVC ExceptionHandlers.
+     */
     // Кастомный метод для отправки JSON ответа клиенту, так как обычный @RestControllerAdvice не умеет ловить ошибки из фильтров.
     private void handleJwtException(HttpServletResponse response, HttpStatus status, String message) throws IOException {
         response.setStatus(status.value());
