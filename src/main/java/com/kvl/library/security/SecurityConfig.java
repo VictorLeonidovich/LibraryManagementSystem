@@ -57,6 +57,8 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // Разрешаем доступ к эндпоинтам мониторинга (Actuator / Prometheus) без авторизации
+                        .requestMatchers("/actuator/**").permitAll()
 
                         // Ограничение прав для REST API бизнес-логики по HTTP методам
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole("ADMIN")
