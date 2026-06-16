@@ -32,7 +32,8 @@
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>${LOG_DIR}/${LOG_FILE}.log</file>
             <encoder>
-                <pattern>${FILE_LOG_PATTERN}</pattern>
+                <!-- Fixed pattern for seamless Logstash parsing: Timestamp | Level | PID | Thread | Logger | Message -->
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} | %-5level | ${PID:- } | [%thread] | %logger{36} | %msg%n</pattern>
                 <charset>UTF-8</charset>
             </encoder>
             <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">

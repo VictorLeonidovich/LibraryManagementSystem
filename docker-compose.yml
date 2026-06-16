@@ -31,6 +31,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION}
+    volumes:
+      - applogs:/app/logs # Шарим папку с логами для Logstash
     depends_on:
       postgres-db:
         condition: service_healthy
@@ -55,6 +57,41 @@ services:
     depends_on:
       - prometheus
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELK_VERSION}
+    container_name: library_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false # Отключаем авторизацию для упрощения учебной настройки
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Экономим ОЗУ
+    ports:
+      - "${ELASTICSEARCH_PORT}:9200"
+    volumes:
+      - elasticdata:/usr/share/elasticsearch/data
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${ELK_VERSION}
+    container_name: library_logstash
+    environment:
+      - "LS_JAVA_OPTS=-Xms256m -Xmx256m" # Экономим ОЗУ
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - applogs:/var/log/app:ro # Читаем логи из общего volume
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${ELK_VERSION}
+    container_name: library_kibana
+    ports:
+      - "${KIBANA_PORT}:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+
 volumes:
   pgdata:
   grafanadata:
+  elasticdata:
+  applogs: # Именованный volume для передачи логов
