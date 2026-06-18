@@ -3,6 +3,7 @@ package com.kvl.library.security;
 import com.kvl.library.entity.User;
 import com.kvl.library.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +23,12 @@ public class DatabaseUserInitializer implements ApplicationListener<ContextRefre
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${app.security.default-admin-password:password}")
+    private String defaultAdminPassword;
+
+    @Value("${app.security.default-user-password:password}")
+    private String defaultUserPassword;
+
     public DatabaseUserInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -30,8 +37,8 @@ public class DatabaseUserInitializer implements ApplicationListener<ContextRefre
     @Override
     @Transactional
     public void onApplicationEvent(ContextRefreshedEvent event) {
-        initializeDefaultUser("admin", "password", "ROLE_ADMIN");
-        initializeDefaultUser("user", "password", "ROLE_USER");
+        initializeDefaultUser("admin", defaultAdminPassword, "ROLE_ADMIN");
+        initializeDefaultUser("user", defaultUserPassword, "ROLE_USER");
     }
 
     /**
