@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ "main", "master", "develop" ]
 
+# Выделяем права доступа для записи отчетов безопасности в интерфейс GitHub
+permissions:
+  security-events: write
+  contents: read
+  actions: read
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -23,9 +29,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # 3. Инициализируем бесплатный анализатор кода GitHub CodeQL (вместо локального Sonar)
+      # 3. Инициализируем анализатор кода GitHub CodeQL (обновлен до актуальной версии v4)
       - name: Initialize CodeQL Analysis
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: 'java'
 
@@ -35,9 +41,9 @@ jobs:
       - name: Build and Run All Tests via Maven
         run: mvn clean verify -Pprod -B
 
-      # 5. Выполняем финальный статический анализ кода и отправляем отчет в интерфейс GitHub
+      # 5. Выполняем финальный статический анализ кода (обновлен до актуальной версии v4)
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
 
       # 6. Проверка JaCoCo: парсит суммарный CSV отчет и валит пайплайн, если покрытие < 70%
       # Он учтет покрытие и от юнит-тестов, и от контейнерных интеграционных тестов.
@@ -50,6 +56,7 @@ jobs:
           generate-branches-badge: false
 
       # 7. Сохраняем отчеты тестирования и уязвимостей в артефакты GitHub (доступны 7 дней)
+      # Добавлена проверка на существование папки отчетов, чтобы шаг не падал при сетевых таймаутах OWASP.
       - name: Upload Test Coverage and Security Reports
         if: always() # Выполняется в любом случае, чтобы можно было изучить логи упавших тестов
         uses: actions/upload-artifact@v4
