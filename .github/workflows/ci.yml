@@ -23,13 +23,23 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # 3. Запускаем ВСЕ тесты (Юнит-тесты на H2 и Интеграционные тесты на Testcontainers).
+      # 3. Инициализируем бесплатный анализатор кода GitHub CodeQL (вместо локального Sonar)
+      - name: Initialize CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: 'java'
+
+      # 4. Запускаем ВСЕ тесты и сборку проекта (Юнит-тесты на H2 и Интеграционные тесты на Testcontainers).
       # Активируем Maven-профиль -Pprod, чтобы подтянуть драйвер PostgreSQL.
       # Спринг сам будет переключать профили среды ("test" или "containers") на основе аннотаций @ActiveProfiles в коде.
       - name: Build and Run All Tests via Maven
         run: mvn clean verify -Pprod -B
 
-      # 4. Проверка JaCoCo: парсит суммарный CSV отчет и валит пайплайн, если покрытие < 70%
+      # 5. Выполняем финальный статический анализ кода и отправляем отчет в интерфейс GitHub
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+      # 6. Проверка JaCoCo: парсит суммарный CSV отчет и валит пайплайн, если покрытие < 70%
       # Он учтет покрытие и от юнит-тестов, и от контейнерных интеграционных тестов.
       - name: Validate JaCoCo Code Coverage Threshold (70%)
         uses: cicirello/jacoco-badge-generator@v2
@@ -39,8 +49,8 @@ jobs:
           generate-coverage-badge: false
           generate-branches-badge: false
 
-      # 5. Сохраняем отчеты тестирования в артефакты GitHub (доступны 7 дней)
-      - name: Upload Test Coverage Reports
+      # 7. Сохраняем отчеты тестирования и уязвимостей в артефакты GitHub (доступны 7 дней)
+      - name: Upload Test Coverage and Security Reports
         if: always() # Выполняется в любом случае, чтобы можно было изучить логи упавших тестов
         uses: actions/upload-artifact@v4
         with:
@@ -48,4 +58,5 @@ jobs:
           path: |
             target/surefire-reports/
             target/site/jacoco/
+            target/dependency-check-report/
           retention-days: 7

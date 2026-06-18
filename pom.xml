@@ -346,6 +346,8 @@
                             <format>JSON</format>
                         </formats>
                         <outputDirectory>${project.build.directory}/dependency-check-report</outputDirectory>
+						<!-- Железный предохранитель: сборка никогда не упадет из-за внешних сетевых ошибок -->
+						<failOnError>false</failOnError>
                     </configuration>
                     <executions>
                         <execution>

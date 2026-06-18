@@ -112,9 +112,21 @@ services:
     depends_on:
       - elasticsearch
 
+  sonarqube:
+    image: sonarqube:25.1-community
+    container_name: library_sonarqube
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonardata:/opt/sonarqube/data
+      - sonarext:/opt/sonarqube/extensions
+      - sonarlb:/opt/sonarqube/logs
+
 volumes:
   pgdata:
   grafanadata:
-  elasticdata:
   applogs: # Именованный volume для передачи логов
   redisdata: # Именованный volume для персистентного хранения кэша Redis на диске хоста
+  sonardata:
+  sonarext:
+  sonarlb:
