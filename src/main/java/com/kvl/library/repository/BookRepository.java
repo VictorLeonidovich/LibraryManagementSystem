@@ -29,4 +29,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     @EntityGraph(attributePaths = {"authors", "categories", "publishers"})
     @Override
     List<Book> findAll();
+
+    @Query("SELECT b.isbn FROM Book b")
+    List<String> findTop10Isbns(Pageable pageable);
 }

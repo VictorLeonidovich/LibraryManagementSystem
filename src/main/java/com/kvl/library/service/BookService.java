@@ -78,4 +78,13 @@ public interface BookService {
      */
     @Transactional
     void deleteBook(Long id);
+
+    /**
+     * Получить список ISBN популярных книг для главной страницы каталога.
+     * Применяется для оптимизированного вывода аналитических данных.
+     *
+     * @return список строк с ISBN популярных книг
+     */
+    @Transactional(readOnly = true)
+    java.util.List<String> findPopularBookIsbns();
 }

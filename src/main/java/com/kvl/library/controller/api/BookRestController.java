@@ -25,6 +25,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/books")
@@ -37,6 +38,17 @@ public class BookRestController {
     private final CategoryService categoryService;
     private final PublisherService publisherService;
     private final BookMapper bookMapper;
+
+    @GetMapping("/popular-isbns")
+    @Operation(summary = "Получить список ISBN популярных книг",
+            description = "Возвращает список из 10 популярных ISBN. Данные рассчитываются на лету и сортируются в Redis с помощью структуры Sorted Set для разгрузки БД.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Список популярных ISBN успешно получен"),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
+    })
+    public ResponseEntity<List<String>> getPopularBookIsbns() {
+        return ResponseEntity.ok(bookService.findPopularBookIsbns());
+    }
 
     // GET /api/v1/books?keyword=Война&page=0&size=10&sort=name,asc
     @GetMapping
@@ -120,7 +132,7 @@ public class BookRestController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Удалить книгу по ID", description = "Доступно только пользователям с ролью ADMIN.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "24", description = "Книга успешно удалена (нет содержимого)"),
+            @ApiResponse(responseCode = "204", description = "Книга успешно удалена (нет содержимого)"),
             @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
             @ApiResponse(responseCode = "404", description = "Книга не найдена")
     })
