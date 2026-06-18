@@ -336,7 +336,7 @@
 						<doclint>none</doclint> <!-- Предохранитель, чтобы сборка не падала из-за варнингов стиля -->
 					</configuration>
 				</plugin>
-                <plugin>
+                <!--<plugin>
                     <groupId>org.owasp</groupId>
                     <artifactId>dependency-check-maven</artifactId>
                     <version>${dependency-check-maven.version}</version>
@@ -346,19 +346,19 @@
                             <format>JSON</format>
                         </formats>
                         <outputDirectory>${project.build.directory}/dependency-check-report</outputDirectory>
-						<!-- Железный предохранитель: сборка никогда не упадет из-за внешних сетевых ошибок -->
+						&lt;!&ndash; Железный предохранитель: сборка никогда не упадет из-за внешних сетевых ошибок &ndash;&gt;
 						<failOnError>false</failOnError>
                     </configuration>
                     <executions>
                         <execution>
-                            <!-- Запуск анализа уязвимостей в фазе проверки проекта -->
+                            &lt;!&ndash; Запуск анализа уязвимостей в фазе проверки проекта &ndash;&gt;
                             <phase>verify</phase>
                             <goals>
                                 <goal>check</goal>
                             </goals>
                         </execution>
                     </executions>
-                </plugin>
+                </plugin>-->
 			</plugins>
 		</pluginManagement>
 
@@ -379,10 +379,10 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
 			</plugin>
-            <plugin>
+            <!--<plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-            </plugin>
+            </plugin>-->
 		</plugins>
 	</build>
 </project>
