@@ -30,12 +30,21 @@ public class BookController {
 
     @GetMapping("/books")
     public String findAllBooks(
+            @RequestParam(required = false) String keyword, // Безопасный необязательный параметр для интеграции LIKE-поиска
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
             Model model) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
-        Page<Book> booksPage = bookService.findAllBooks(pageable);
+        Page<Book> booksPage;
+
+        // Бизнес-логика фильтрации: перенаправляем запрос в кастомный LIKE-квери, если строка не пуста
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            booksPage = bookService.searchBooks(keyword, pageable);
+            model.addAttribute("keyword", keyword); // Передаем обратно, чтобы инпут в хедере не занулялся
+        } else {
+            booksPage = bookService.findAllBooks(pageable);
+        }
 
         model.addAttribute("books", booksPage.getContent());
         model.addAttribute("currentPage", page);

@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>Ошибка сервера</title>
-    <link rel="stylesheet" href="https://jsdelivr.net">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
 </head>
+<header>
+    <div th:replace="~{fragments/header :: header}"></div>
+</header>
 <body class="bg-light">
 <div class="container py-5">
     <div class="text-center">

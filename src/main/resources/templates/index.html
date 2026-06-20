@@ -4,105 +4,193 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Library Management System</title>
-    <!-- Подключаем наш единственный, полностью автономный файл стилей -->
+    <!-- Подключаем автономный файл стилей -->
     <link th:href="@{/css/style.css}" rel="stylesheet">
 </head>
 <body>
 
 <header>
+    <!-- Подключение сквозного фрагмента хедера (синхронизировано со всеми страницами) -->
     <div th:replace="~{fragments/header :: header}"></div>
 </header>
 
 <main>
-    <!-- ГЛАВНЫЙ HERO-БАННЕР -->
+    <!-- ГЛАВНЫЙ ИНФОРМАЦИОННЫЙ HERO-БАННЕР -->
     <section class="hero-section">
-        <div class="container">
-            <span class="badge-premium">Spring Boot 4 Enterprise Stack</span>
+        <div class="container text-center">
+            <span class="badge-premium">Spring Boot 4.0.6 Enterprise Stack</span>
             <h1 class="hero-title">Library Management System</h1>
-            <p class="hero-desc">Высокотехнологичная платформа управления библиотечным фондом. Реализована распределенная архитектура, сквозной мониторинг и непрерывный аудит безопасности кода.</p>
-            <div class="btn-group">
-                <a class="btn-custom btn-primary-custom" th:href="@{/books}"> Каталог книг</a>
-                <a class="btn-custom btn-outline-custom" href="/swagger-ui.html"> Документация API</a>
-                <a class="btn-custom btn-outline-custom" href="/actuator/prometheus"> Метрики системы</a>
+            <p class="hero-desc">Высокотехнологичная платформа управления библиотечным фондом. Реализована гибридная архитектура со сквозным логированием, мониторингом реального времени и автоматизированным DevSecOps аудитом.</p>
+
+            <!-- РАСШИРЕННЫЙ БЛОК УПРАВЛЕНИЯ И КНОПОК -->
+            <div class="btn-group" style="justify-content: center; margin-bottom: 2rem;">
+                <a class="btn-custom btn-primary-custom" th:href="@{/books}">📚 Каталог книг</a>
+                <a class="btn-custom btn-outline-custom" href="/swagger-ui.html">🔍 Swagger API</a>
+                <a class="btn-custom btn-outline-custom" target="_blank" href="https://spring.io">🌱 Spring Boot 4</a>
+                <a class="btn-custom btn-outline-custom" target="_blank" href="http://localhost:3000">📊 Grafana</a>
+                <a class="btn-custom btn-outline-custom" target="_blank" href="http://localhost:9090">🔥 Prometheus</a>
+                <a class="btn-custom btn-outline-custom" target="_blank" href="http://localhost:5601">👁️ Kibana ELK</a>
+                <a class="btn-custom btn-outline-custom" href="/actuator">⚙️ Actuator</a>
             </div>
         </div>
     </section>
 
-    <!-- МАРКЕТИНГОВАЯ СЕТКА С КАРТОЧКАМИ -->
+    <!-- ТЕХНОЛОГИЧЕСКИЙ СТЕК И ОБНОВЛЕННАЯ АРХИТЕКТУРА (МАРКЕТИНГ-КАРТОЧКИ) -->
     <div class="container">
         <div class="marketing-grid">
-            <!-- Карточка 1 -->
             <div class="tech-card">
-                <div class="icon-box">📦</div>
-                <h3 class="card-title">Книжный фонд</h3>
-                <p class="card-desc">Полный контроль над библиотечным каталогом. Просматривайте доступные экземпляры, ищите по ключевым словам и кодам ISBN с удобной пагинацией.</p>
-                <a class="card-link" th:href="@{/books}">Перейти в каталог →</a>
+                <div class="icon-box">💻</div>
+                <h3 class="card-title">Мощный Бэкенд Стек</h3>
+                <p class="card-desc">Архитектура построена на Java и актуальном Spring Boot 4. Внедрен DTO-маппинг через MapStruct, изоляция интерфейсов сервисного слоя, транзакции JPA и Jakarta Validation.</p>
+                <a class="card-link" th:href="@{/books}">Открыть каталог →</a>
             </div>
-            <!-- Карточка 2 -->
             <div class="tech-card">
-                <div class="icon-box">✍️</div>
-                <h3 class="card-title">Авторы и Издатели</h3>
-                <p class="card-desc">Управление карточками авторов, категорий и издательских домов. Обеспечение строгой реляционной целостности данных на уровне СУБД.</p>
-                <a class="card-link" th:href="@{/add-book}">Управление фондом →</a>
+                <div class="icon-box">🏛️</div>
+                <h3 class="card-title">Многослойный Интерфейс</h3>
+                <p class="card-desc">Выделенный REST API с собственной цепочкой JwtRequestFilter и изолированный UI-слой серверного рендеринга на Thymeleaf с раздельной глобальной обработкой исключений.</p>
+                <a class="card-link" th:href="@{/categories}">Категории фонда →</a>
             </div>
-            <!-- Карточка 3 -->
             <div class="tech-card">
-                <div class="icon-box">🛡️</div>
-                <h3 class="card-title">API и Интеграции</h3>
-                <p class="card-desc">Stateless архитектура REST API, защищенная JWT-токенами, с полной интерактивной спецификацией Swagger для тестирования эндпоинтов.</p>
-                <a class="card-link" href="/swagger-ui.html">Тестировать API →</a>
+                <div class="icon-box">🔐</div>
+                <h3 class="card-title">Ролевая Безопасность</h3>
+                <p class="card-desc">REST-эндпоинты защищены JWT-токенами. Реализована жесткая ролевая модель доступа (USER, ADMIN) с централизованным перехватом и структурированием JwtException.</p>
+                <a class="card-link" href="/swagger-ui.html">Тестировать доступ →</a>
             </div>
         </div>
     </div>
 
-    <!-- СЕКЦИИ ПОДРОБНОГО ОПИСАНИЯ ТЕХНОЛОГИЙ (FEATURETTES) -->
+    <!-- ЛЕНТА РЕАЛИЗОВАННЫХ ТЕХНОЛОГИЙ (ВЫРАВНИВАНИЕ ПО ЦЕНТРУ СЕТКИ) -->
     <div class="container featurette-section">
 
-        <!-- Секция 1: PostgreSQL & Redis -->
-        <div class="featurette-row">
-            <div class="featurette-content">
-                <span class="badge-tech">Архитектура Данных</span>
-                <h2 class="featurette-title">Гибридный слой данных. <span>PostgreSQL & Redis.</span></h2>
-                <p class="featurette-desc">Классическая реляционная база данных PostgreSQL отвечает за надежное хранение информации и транзакции. Распределенный кэш Redis берет на себя мгновенный подсчет популярности и защиту тяжелых запросов.</p>
-            </div>
-            <div class="featurette-icon-zone">
-                <!-- Крупный красивый текстовый маркер вместо картинок, которые не грузились -->
-                <span style="font-size: 5rem; display: block; filter: grayscale(20%);">💾</span>
-            </div>
+        <div style="text-align: center; margin-bottom: 3rem;">
+            <h2 style="font-size: 2.5rem; font-weight: 800; color: var(--bg-dark);">Успешно реализовано в проекте</h2>
+            <p style="color: var(--text-muted);">Инфраструктурные вехи и паттерны, развернутые и проверенные в продакшн-режиме</p>
         </div>
 
-        <!-- Секция 2: Liquibase -->
+        <!-- 1. Изолированные Профили -->
+        <div class="featurette-row">
+            <div class="featurette-content">
+                <span class="badge-tech">Окружение</span>
+                <h2 class="featurette-title">Профили Среды Развертывания. <span>Изоляция контекстов.</span></h2>
+                <p class="featurette-desc">Настроена система гибких профилей: dev (быстрая in-memory H2), test (автоматические тесты), containers (Docker-интеграция) и prod (промышленная СУБД PostgreSQL с защитой учетных данных через переменные среды).</p>
+            </div>
+            <div class="featurette-icon-zone"><span style="font-size: 5rem;">⚙️</span></div>
+        </div>
+
+        <!-- 2. PostgreSQL & Redis -->
         <div class="featurette-row reverse">
             <div class="featurette-content">
-                <span class="badge-tech">Миграции</span>
-                <h2 class="featurette-title">Надежная миграция. <span>Интеграция Liquibase.</span></h2>
-                <p class="featurette-desc">Все изменения структуры таблиц версионируются и контролируются через Liquibase скрипты. Это гарантирует предсказуемое развертывание и полную независимость баз данных между dev и prod окружениями.</p>
+                <span class="badge-tech">Базы Данных и Кэш</span>
+                <h2 class="featurette-title">Гибридный Слой Данных. <span>PostgreSQL & Redis.</span></h2>
+                <p class="featurette-desc">Реляционная база данных PostgreSQL обеспечивает транзакционную целостность бизнес-логики. Распределенный кэш Redis (ZSET и декларативный Spring Cache с TTL 10 минут) реализует высокоскоростной подсчет популярности книг.</p>
             </div>
-            <div class="featurette-icon-zone">
-                <span style="font-size: 5rem; display: block;">🌿</span>
-            </div>
+            <div class="featurette-icon-zone"><span style="font-size: 5rem;">💾</span></div>
         </div>
 
-        <!-- Секция 3: Testcontainers -->
+        <!-- 3. Liquibase -->
         <div class="featurette-row">
             <div class="featurette-content">
-                <span class="badge-tech">CI/CD Тестирование</span>
-                <h2 class="featurette-title">Тестирование в контейнерах. <span>Testcontainers.</span></h2>
-                <p class="featurette-desc">Интеграционные тесты уровня CI/CD выполняются в изолированных Docker-контейнерах благодаря библиотеке Testcontainers. Никаких «грязных данных» — тесты проверяют систему в условиях, идентичных продакшну.</p>
+                <span class="badge-tech">Миграции</span>
+                <h2 class="featurette-title">Эволюция Схем Данных. <span>Интеграция Liquibase.</span></h2>
+                <p class="featurette-desc">Структура таблиц и демонстрационные данные версионируются и контролируются через упорядоченные скрипты Liquibase. Архитектура файлов приведена к промышленному стандарту для полной независимости dev/prod баз.</p>
             </div>
-            <div class="featurette-icon-zone">
-                <span style="font-size: 5rem; display: block;">🐳</span>
+            <div class="featurette-icon-zone"><span style="font-size: 5rem;">🌿</span></div>
+        </div>
+
+        <!-- 4. Тестирование и JaCoCo -->
+        <div class="featurette-row reverse">
+            <div class="featurette-content">
+                <span class="badge-tech">QA & Тестирование</span>
+                <h2 class="featurette-title">Контейнерные тесты. <span>Testcontainers & JaCoCo.</span></h2>
+                <p class="featurette-desc">Развернуты комплексные интеграционные тесты в Docker-контейнерах на базе Testcontainers. Юнит-тестирование веб-слоя реализовано через MockMvc и Mockito. Сборка метрик покрытия автоматизирована плагином JaCoCo (&gt;70%).</p>
             </div>
+            <div class="featurette-icon-zone"><span style="font-size: 5rem;">🐳</span></div>
+        </div>
+
+        <!-- 5. Стек Наблюдаемости (Observability) -->
+        <div class="featurette-row">
+            <div class="featurette-content">
+                <span class="badge-tech">Observability</span>
+                <h2 class="featurette-title">Мониторинг Метрик. <span>Actuator, Prometheus & Grafana.</span></h2>
+                <p class="featurette-desc">Обеспечен сквозной экспорт системных показателей производительности JVM, оперативной памяти и пропускной способности HTTP-запросов (RPS) в реальном времени. В prod-профиле доступ к инфраструктуре безопасности строго изолирован.</p>
+            </div>
+            <div class="featurette-icon-zone"><span style="font-size: 5rem;">📈</span></div>
+        </div>
+
+        <!-- 6. Централизованное логирование (ELK Stack) -->
+        <div class="featurette-row reverse">
+            <div class="featurette-content">
+                <span class="badge-tech">Логирование</span>
+                <h2 class="featurette-title">Агрегация Логов. <span>Elasticsearch, Logstash & Kibana.</span></h2>
+                <p class="featurette-desc">Реализован file-based пайплайн доставки логов. Logstash в реальном времени считывает структурированные файлы бизнес-логики, разбирает их плагином dissect на атомарные JSON-поля и индексирует в Elasticsearch для быстрого поиска в Kibana.</p>
+            </div>
+            <div class="featurette-icon-zone"><span style="font-size: 5rem;">👁️</span></div>
+        </div>
+
+        <!-- 7. Автоматизированная Безопасность (DevSecOps) -->
+        <div class="featurette-row">
+            <div class="featurette-content">
+                <span class="badge-tech">DevSecOps</span>
+                <h2 class="featurette-title">Статический Анализ Кода. <span>CodeQL & OWASP Scan.</span></h2>
+                <p class="featurette-desc">Внедрено непрерывное сканирование исходного кода на наличие багов (SAST) через движок CodeQL в CI/CD пайплайне GitHub Actions. Сторонние библиотеки регулярно проверяются плагином OWASP Dependency-Check на наличие известных CVE-уязвимостей.</p>
+            </div>
+            <div class="featurette-icon-zone"><span style="font-size: 5rem;">🛡️</span></div>
         </div>
 
     </div>
 
-    <!-- ПОДВАЛ СТРАНИЦЫ -->
+    <!-- ПЕРСПЕКТИВЫ ДАЛЬНЕЙШЕЙ РАЗРАБОТКИ (PROJECT ROADMAP) -->
+    <div class="container featurette-section" style="border-top: 1px solid var(--border); padding-top: 4rem;">
+
+        <div style="text-align: center; margin-bottom: 3rem;">
+            <h2 style="font-size: 2.5rem; font-weight: 800; color: #475569;">🚀 Перспективы дальнейшей разработки</h2>
+            <p style="color: var(--text-muted);">Архитектурные и функциональные задачи для вывода платформы на полноценный Enterprise-уровень</p>
+        </div>
+
+        <div class="marketing-grid">
+            <!-- Планы 1 -->
+            <div class="tech-card" style="background: #fafafa; border-style: dashed;">
+                <div class="icon-box" style="background: #f1f5f9; color: #475569;">🌍</div>
+                <h4 class="card-title">Локализация (i18n)</h4>
+                <p class="card-desc">Вынос жестко закодированных сообщений об ошибках, уведомлений валидации и элементов интерфейса в отдельные файлы ресурсов (messages.properties) для поддержки мультиязычности.</p>
+            </div>
+            <!-- Планы 2 -->
+            <div class="tech-card" style="background: #fafafa; border-style: dashed;">
+                <div class="icon-box" style="background: #f1f5f9; color: #475569;">📄</div>
+                <h4 class="card-title">Экспорт и Отчетность</h4>
+                <p class="card-desc">Интеграция библиотек экспорта метаданных, истории транзакций и карточек книг в популярные форматы бизнес-документов Excel (XLSX) и PDF.</p>
+            </div>
+            <!-- Планы 3 -->
+            <div class="tech-card" style="background: #fafafa; border-style: dashed;">
+                <div class="icon-box" style="background: #f1f5f9; color: #475569;">✉️</div>
+                <h4 class="card-title">Почтовый Модуль</h4>
+                <p class="card-desc">Реализация сервиса на базе Spring Boot Mail для отправки электронных версий книг, подтверждений заказов и автоматических напоминаний о возврате фонда.</p>
+            </div>
+            <!-- Планы 4 -->
+            <div class="tech-card" style="background: #fafafa; border-style: dashed; grid-column: 1 / -1;">
+                <div class="icon-box" style="background: #f1f5f9; color: #475569;">📡</div>
+                <h4 class="card-title">Событийно-Ориентированная Архитектура (EDA) и Симулятор</h4>
+                <p class="card-desc">Разработка изолированного микросервиса для имитации конкурентного поведения множества пользователей. Интеграция высокопроизводительного брокера сообщений <strong>Apache Kafka</strong> в качестве платформы потоковой передачи событий активности в основную систему.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- КАРТОЧКА РАЗРАБОТЧИКА -->
+    <div class="container mb-5">
+        <div style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+            <div style="width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; margin-bottom: 1rem; box-shadow: 0 10px 15px -3px rgba(37,99,235,0.3);">КВЛ</div>
+            <h3 style="font-size: 1.5rem; font-weight: 800; color: var(--bg-dark); margin-bottom: 0.25rem;">Красиков Виктор Леонидович</h3>
+            <p style="color: var(--primary); font-weight: 600; font-size: 0.9rem; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1rem;">Software Engineer</p>
+            <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 500px;"><i class="fas fa-map-marker-alt" style="margin-right: 0.5rem; color: #ef4444;"></i>211440, Республика Беларусь, Витебская область, г. Новополоцк</p>
+        </div>
+    </div>
+
+    <!-- ФУТЕР СТРАНИЦЫ -->
     <footer class="custom-footer">
         <div class="container footer-container">
-            <p class="footer-text">© 2026 Library Management System · Разработано для учебного проекта</p>
-            <a class="footer-btn" target="_blank" href="https://github.com">
-                🐙 GitHub Проекта
+            <p class="footer-text">© 2026 Library Management System · Учебный Enterprise-проект</p>
+            <a class="footer-btn" target="_blank" href="https://github.com/VictorLeonidovich/LibraryManagementSystem">
+                🐙 GitHub Репозиторий
             </a>
         </div>
     </footer>

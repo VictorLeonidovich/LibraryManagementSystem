@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>Страница не найдена</title>
-    <link rel="stylesheet" href="https://jsdelivr.net">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
 </head>
+<header>
+    <div th:replace="~{fragments/header :: header}"></div>
+</header>
 <body class="bg-light">
 <div class="container text-center py-5">
     <h1 class="display-1 text-muted">404</h1>
