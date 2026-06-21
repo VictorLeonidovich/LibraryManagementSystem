@@ -61,10 +61,83 @@
                             <td th:text="${book.description}"></td>
                         </tr>
                     </table>
+
+                    <!-- Блок экспорта данных и отчетности -->
+                    <div class="mt-4 p-3 border rounded bg-light">
+                        <h5 class="mb-3"><i class="fas fa-file-export me-2"></i>Экспорт и отчетность</h5>
+                        <form th:action="@{/books/{id}/export(id=${book.id})}" method="POST" class="row g-3 align-items-center">
+
+                            <!-- Выбор формата файла -->
+                            <div class="col-auto">
+                                <label for="formatSelect" class="form-label text-muted small mb-1 d-block">Формат</label>
+                                <select class="form-select" id="formatSelect" name="format">
+                                    <option value="XLSX">Excel (XLSX)</option>
+                                    <option value="PDF">PDF Document</option>
+                                </select>
+                            </div>
+
+                            <!-- Выбор канала отправки/скачивания -->
+                            <div class="col-auto">
+                                <label for="actionSelect" class="form-label text-muted small mb-1 d-block">Действие</label>
+                                <select class="form-select" id="actionSelect" name="action">
+                                    <option value="DOWNLOAD">Скачать файл</option>
+                                    <option value="EMAIL">Отправить на Email</option>
+                                </select>
+                            </div>
+
+                            <!-- Поле ввода Email (по умолчанию скрыто) -->
+                            <div class="col-md-4 d-none" id="emailInputContainer">
+                                <label for="emailInput" class="form-label text-muted small mb-1 d-block">Email получателя</label>
+                                <input type="email" class="form-select bg-white" id="emailInput" name="email" placeholder="example@mail.com">
+                            </div>
+
+                            <!-- Динамическая кнопка действия -->
+                            <div class="col-auto align-self-end">
+                                <button type="submit" class="btn btn-primary" id="submitActionButton">
+                                    <i class="fas fa-download me-2" id="buttonIcon"></i>
+                                    <span id="buttonText">Сохранить</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <!-- Конец блока экспорта -->
+
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Скрипт для интерактивного изменения UI без перезагрузки страницы -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const actionSelect = document.getElementById("actionSelect");
+        const emailContainer = document.getElementById("emailInputContainer");
+        const emailInput = document.getElementById("emailInput");
+        const buttonText = document.getElementById("buttonText");
+        const buttonIcon = document.getElementById("buttonIcon");
+
+        actionSelect.addEventListener("change", function () {
+            if (this.value === "EMAIL") {
+                // Показываем поле ввода email и делаем его обязательным
+                emailContainer.classList.remove("d-none");
+                emailInput.required = true;
+
+                // Меняем текст и иконку на "Отправить"
+                buttonText.textContent = "Отправить";
+                buttonIcon.className = "fas fa-paper-plane me-2";
+            } else {
+                // Скрываем поле ввода email
+                emailContainer.classList.add("d-none");
+                emailInput.required = false;
+                emailInput.value = ""; // Очищаем значение
+
+                // Возвращаем текст и иконку на "Сохранить"
+                buttonText.textContent = "Сохранить";
+                buttonIcon.className = "fas fa-download me-2";
+            }
+        });
+    });
+</script>
 </body>
 </html>

@@ -5,10 +5,8 @@ import com.kvl.library.entity.Book;
 import com.kvl.library.entity.Category;
 import com.kvl.library.entity.Publisher;
 import com.kvl.library.security.JwtRequestFilter;
-import com.kvl.library.service.AuthorService;
-import com.kvl.library.service.BookService;
-import com.kvl.library.service.CategoryService;
-import com.kvl.library.service.PublisherService;
+import com.kvl.library.service.*;
+import com.kvl.library.service.impl.BookExportFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,6 +51,10 @@ class BookControllerTest {
 
     @MockitoBean
     private AuthorService authorService;
+    @MockitoBean
+    private BookExportFactory bookExportFactory;
+    @MockitoBean
+    private EmailService emailService;
 
     @MockitoBean
     private JwtRequestFilter jwtRequestFilter;

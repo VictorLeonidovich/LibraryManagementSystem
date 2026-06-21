@@ -1,10 +1,15 @@
 package com.kvl.library.controller.ui;
 
 import com.kvl.library.entity.Book;
+import com.kvl.library.enums.ExportAction;
+import com.kvl.library.enums.ExportFormat;
 import com.kvl.library.service.AuthorService;
+import com.kvl.library.service.BookExportService;
 import com.kvl.library.service.BookService;
 import com.kvl.library.service.CategoryService;
+import com.kvl.library.service.EmailService;
 import com.kvl.library.service.PublisherService;
+import com.kvl.library.service.impl.BookExportFactory;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +32,8 @@ public class BookController {
     private final CategoryService categoryService;
     private final PublisherService publisherService;
     private final AuthorService authorService;
+    private final BookExportFactory bookExportFactory;
+    private final EmailService emailService;
 
     @GetMapping("/books")
     public String findAllBooks(
@@ -108,5 +115,50 @@ public class BookController {
         }
         bookService.createBook(book);
         return "redirect:/books";
+    }
+
+    // Новый эндпоинт для обработки формы экспорта:
+    @PostMapping("/books/{id}/export")
+    public org.springframework.http.ResponseEntity<byte[]> exportBook(
+            @PathVariable Long id,
+            @RequestParam ExportFormat format,
+            @RequestParam ExportAction action,
+            @RequestParam(required = false) String email,
+            org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
+
+        // 1. Получаем книгу
+        Book book = bookService.findBookById(id);
+
+        // 2. Получаем нужную стратегию генерации (Excel или PDF) и генерируем байты
+        BookExportService exportService = bookExportFactory.getService(format);
+        byte[] fileContent = exportService.export(book);
+
+        //String fileExtension = format.name().toLowerCase();
+        String filename = "book_" + id + "_report." + (format == ExportFormat.XLSX ? "xlsx" : "pdf");
+
+        // 3. Выбираем действие: скачать или отправить
+        if (action == ExportAction.EMAIL) {
+            String subject = "Карточка книги: " + book.getName();
+            String text = "Здравствуйте!\n\nВо вложении находится выгрузка информации по книге \"" + book.getName() + "\".";
+
+            emailService.sendEmailWithAttachment(email, subject, text, fileContent, filename);
+
+            // Так как это POST-запрос с UI формы, для отправки почты сделаем редирект обратно с флеш-сообщением
+            redirectAttributes.addFlashAttribute("successMessage", "Отчет успешно отправлен на " + email);
+
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.FOUND)
+                    .location(java.net.URI.create("/book/" + id))
+                    .build();
+        }
+
+        // 4. Режим DOWNLOAD: отдаем файл в браузер
+        String contentType = format == ExportFormat.XLSX
+                ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                : "application/pdf";
+
+        return org.springframework.http.ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
+                .body(fileContent);
     }
 }

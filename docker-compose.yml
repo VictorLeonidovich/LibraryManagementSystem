@@ -32,6 +32,14 @@ services:
       timeout: 3s
       retries: 5
 
+  # Локальный SMTP сервер для тестирования отправки почтовых уведомлений
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: library_mailhog
+    ports:
+      - "1025:1025" # SMTP порт приема сообщений
+      - "8025:8025" # Web UI порт для просмотра писем через браузер
+
   library-app:
     build:
       context: .
@@ -51,6 +59,13 @@ services:
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # Передаем переменные почтового сервера из .env файла
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH}
+      MAIL_STARTTLS_ENABLE: ${MAIL_STARTTLS_ENABLE}
     volumes:
       - applogs:/app/logs # Шарим папку с логами для Logstash
     depends_on:

@@ -42,8 +42,8 @@ public class SecurityConfig {
         http
                 // 1. Настройка защиты CSRF
                 .csrf(csrf -> csrf
-                        // Отключаем CSRF для REST API и консоли H2
-                        .ignoringRequestMatchers("/api/**", "/h2-console/**")
+                        // Отключаем CSRF для REST API, консоли H2 и POST-запросов экспорта отчетов
+                        .ignoringRequestMatchers("/api/**", "/h2-console/**", "/books/*/export")
                 )
 
                 // 2. Настройка заголовков (Разрешаем фреймы для H2-консоли внутри одного домена)
