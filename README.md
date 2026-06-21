@@ -98,6 +98,10 @@
   * Добавление функционала экспорта данных при просмотре книги, позволяющего пользователям сохранять карточки книг в форматы **Excel (XLSX)** и **PDF**.
 - [x] **Интеграция почтового сервиса:** 
   * Реализация модуля отправки уведомлений по электронной почте на базе Spring Boot Mail для отправки электронных версий карточек книг.
+- [x] **Интернационализация (i18n):**
+  * Внедрена централизованная система мультиязычности (i18n) на базе Spring Boot 4 и Thymeleaf с изоляцией ресурсов в директорию `resources/i18n/`.
+  * Архитектура спроектирована с учетом стандартов Java 17+ и готова к полному выносу жестко закодированных сообщений об ошибках, уведомлений валидации и элементов UI.
+  * Базовый механизм, автоматическое определение локали через Cookie и поддержка переключения языков (`RU` / `EN`) успешно реализованы и протестированы на компоненте навигационной панели (`header`).
 
 
 ### 🔄 В планах и разработке
@@ -111,10 +115,7 @@
 
 Для вывода системы на уровень полноценного enterprise-решения планируется реализация следующих архитектурных и функциональных задач:
 
-### 1. Локализация
-* [ ] **Интернационализация (i18n):** Вынос всех жестко закодированных сообщений об ошибках, уведомлений валидации и текстовых элементов интерфейса в отдельные файлы ресурсов (`messages.properties`) для обеспечения мультиязычности.
-
-### 2. Событийно-ориентированная архитектура (EDA) и симуляция
+### 1. Событийно-ориентированная архитектура (EDA) и симуляция
 * [ ] **Симулятор активности пользователей:** Создание изолированного сервиса, который будет имитировать реальное поведение множества конкурентных пользователей, активно отправляя REST-запросы к основному приложению.
   * [ ] **Интеграция брокера сообщений:** Использование **Apache Kafka** в качестве платформы потоковой передачи данных для асинхронной передачи событий активности от симулятора к основной системе, обеспечивая слабую связность (loose coupling) компонентов.
 
@@ -334,3 +335,61 @@ MAIL_STARTTLS_ENABLE=true
 > ```bash
 > docker-compose down && docker-compose up --build
 > ```
+
+---
+
+### 🌐 Инструкция по использованию MessageSource (i18n) в Java-коде
+
+После инициализации конфигурации `InternationalizationConfig`, текстовые сообщения из файлов ресурсов `messages.properties` должны внедряться в логику приложения через интерфейс `MessageSource`.
+
+#### 1. Использование в бизнес-логике / Обработчиках ошибок
+
+Для динамического получения перевода с учетом текущей локали пользователя используется статический контекст `LocaleContextHolder.getLocale()`. Внедрение `MessageSource` выполняется строго через конструктор.
+
+```java
+
+...
+@RestControllerAdvice
+public class ApiGlobalExceptionHandler {
+
+    private final MessageSource messageSource;
+
+    public ApiGlobalExceptionHandler(final MessageSource messageSource) {
+        this.messageSource = messageSource;
+    }
+
+    /**
+     * Пример получения мультиязычного сообщения по его ключу.
+     */
+    private String getErrorMessage(final String messageKey) {
+        return messageSource.getMessage(messageKey, null, LocaleContextHolder.getLocale());
+    }
+}
+```
+
+#### 2. Использование в интеграционных тестах (MockMvc)
+
+В тестах `MessageSource` внедряется через аннотацию `@Autowired`. Локаль (`Locale.ENGLISH` или `Locale.of("ru")`) передается в метод принудительно для верификации конкретного языкового пакета.
+
+```java
+
+...
+class AuthorRestControllerTest {
+    
+    ...
+
+    @Autowired
+    private MessageSource messageSource;
+
+    @Test
+    void shouldReturnLocalizedValidationError() throws Exception {
+        // Извлекаем ожидаемую строку перевода для английской локали
+        final String expectedMessage = messageSource.getMessage("error.validation.failed", null, Locale.ENGLISH);
+
+        mockMvc.perform(get("/api/authors/invalid-id")
+                        .header("Accept-Language", "en")) // Передаем заголовок локали
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("\$.message").value(expectedMessage));
+    }
+}
+```

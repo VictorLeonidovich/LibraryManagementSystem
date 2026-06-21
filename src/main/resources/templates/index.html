@@ -45,10 +45,10 @@
                 <a class="card-link" th:href="@{/books}">Открыть каталог →</a>
             </div>
             <div class="tech-card">
-                <div class="icon-box">🏛️</div>
-                <h3 class="card-title">Многослойный Интерфейс</h3>
-                <p class="card-desc">Выделенный REST API с собственной цепочкой JwtRequestFilter и изолированный UI-слой серверного рендеринга на Thymeleaf с раздельной глобальной обработкой исключений.</p>
-                <a class="card-link" th:href="@{/categories}">Категории фонда →</a>
+                <div class="icon-box">📁</div>
+                <h3 class="card-title">Экспорт и Документооборот</h3>
+                <p class="card-desc">Генерация печатных форм PDF и таблиц Excel (XLSX) на лету. Интегрирован почтовый клиент для мгновенной отправки сформированных электронных карточек книг.</p>
+                <a class="card-link" th:href="@{/book/14}">Карточка книги №14 →</a>
             </div>
             <div class="tech-card">
                 <div class="icon-box">🔐</div>
@@ -137,6 +137,36 @@
             <div class="featurette-icon-zone"><span style="font-size: 5rem;">🛡️</span></div>
         </div>
 
+        <!-- 8. Мультиязычность и Локализация (i18n) -->
+        <div class="featurette-row reverse">
+            <div class="featurette-content">
+                <span class="badge-tech">Локализация</span>
+                <h2 class="featurette-title">Мультиязычный Интерфейс. <span>Spring i18n & Cookies.</span></h2>
+                <p class="featurette-desc">Развернута централизованная система локализации с изоляцией ресурсов. Выбор языка сохраняется в куках браузера на 365 дней и динамически обрабатывается перехватчиком. Реализовано безопасное переключение локалей (RU/EN) на уровне заголовка без перезаписи контроллеров.</p>
+            </div>
+            <div class="featurette-icon-zone"><span style="font-size: 5rem;">🌍</span></div>
+        </div>
+
+        <!-- 9. Экспорт данных и генерация документов -->
+        <div class="featurette-row">
+            <div class="featurette-content">
+                <span class="badge-tech">Отчетность</span>
+                <h2 class="featurette-title">Генерация Отчетов. <span>Apache POI & OpenPDF.</span></h2>
+                <p class="featurette-desc">Реализован движок выгрузки данных и формирования отчетности. Система генерирует детализированные карточки книг «на лету», конвертируя метаданные в структурированные таблицы бизнес-документов Excel (XLSX) и подготовленные к печати файлы PDF.</p>
+            </div>
+            <div class="featurette-icon-zone"><span style="font-size: 5rem;">📄</span></div>
+        </div>
+
+        <!-- 10. Интеграция почтового сервиса -->
+        <div class="featurette-row reverse">
+            <div class="featurette-content">
+                <span class="badge-tech">Уведомления</span>
+                <h2 class="featurette-title">Почтовый Сервис. <span>Spring Mail & SMTP Client.</span></h2>
+                <p class="featurette-desc">Интегрирован надежный модуль отправки электронных писем. Настроена асинхронная доставка цифровых копий карточек книг и вложений напрямую пользователям системы с поддержкой правильной кодировки UTF-8 и шаблонизации контента.</p>
+            </div>
+            <div class="featurette-icon-zone"><span style="font-size: 5rem;">✉️</span></div>
+        </div>
+
     </div>
 
     <!-- ПЕРСПЕКТИВЫ ДАЛЬНЕЙШЕЙ РАЗРАБОТКИ (PROJECT ROADMAP) -->
@@ -149,24 +179,6 @@
 
         <div class="marketing-grid">
             <!-- Планы 1 -->
-            <div class="tech-card" style="background: #fafafa; border-style: dashed;">
-                <div class="icon-box" style="background: #f1f5f9; color: #475569;">🌍</div>
-                <h4 class="card-title">Локализация (i18n)</h4>
-                <p class="card-desc">Вынос жестко закодированных сообщений об ошибках, уведомлений валидации и элементов интерфейса в отдельные файлы ресурсов (messages.properties) для поддержки мультиязычности.</p>
-            </div>
-            <!-- Планы 2 -->
-            <div class="tech-card" style="background: #fafafa; border-style: dashed;">
-                <div class="icon-box" style="background: #f1f5f9; color: #475569;">📄</div>
-                <h4 class="card-title">Экспорт и Отчетность</h4>
-                <p class="card-desc">Интеграция библиотек экспорта метаданных, истории транзакций и карточек книг в популярные форматы бизнес-документов Excel (XLSX) и PDF.</p>
-            </div>
-            <!-- Планы 3 -->
-            <div class="tech-card" style="background: #fafafa; border-style: dashed;">
-                <div class="icon-box" style="background: #f1f5f9; color: #475569;">✉️</div>
-                <h4 class="card-title">Почтовый Модуль</h4>
-                <p class="card-desc">Реализация сервиса на базе Spring Boot Mail для отправки электронных версий книг, подтверждений заказов и автоматических напоминаний о возврате фонда.</p>
-            </div>
-            <!-- Планы 4 -->
             <div class="tech-card" style="background: #fafafa; border-style: dashed; grid-column: 1 / -1;">
                 <div class="icon-box" style="background: #f1f5f9; color: #475569;">📡</div>
                 <h4 class="card-title">Событийно-Ориентированная Архитектура (EDA) и Симулятор</h4>
@@ -181,7 +193,12 @@
             <div style="width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; margin-bottom: 1rem; box-shadow: 0 10px 15px -3px rgba(37,99,235,0.3);">КВЛ</div>
             <h3 style="font-size: 1.5rem; font-weight: 800; color: var(--bg-dark); margin-bottom: 0.25rem;">Красиков Виктор Леонидович</h3>
             <p style="color: var(--primary); font-weight: 600; font-size: 0.9rem; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1rem;">Software Engineer @ IBA</p>
-            <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 500px;"><i class="fas fa-map-marker-alt" style="margin-right: 0.5rem; color: #ef4444;"></i>211440, Республика Беларусь, Витебская область, г. Новополоцк</p>
+            <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 500px; margin-bottom: 1.5rem;"><i class="fas fa-map-marker-alt" style="margin-right: 0.5rem; color: #ef4444;"></i>211440, Республика Беларусь, Витебская область, г. Новополоцк</p>
+
+            <!-- Кнопка профиля LinkedIn -->
+            <a href="https://www.linkedin.com/in/victor-krasikov-629794132" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 8px; background: #0077b5; color: white; text-decoration: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; transition: background 0.2s ease; box-shadow: 0 4px 6px -1px rgba(0,119,181,0.2);">
+                <i class="fab fa-linkedin" style="font-size: 1.1rem;"></i> LinkedIn Profile
+            </a>
         </div>
     </div>
 

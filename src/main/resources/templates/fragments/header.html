@@ -13,18 +13,27 @@
 
         <!-- Меню навигации со всеми вкладками -->
         <ul class="nav-menu">
-            <li><a th:href="@{/}" class="nav-link">Home</a></li>
-            <li><a th:href="@{/books}" class="nav-link">Books</a></li>
-            <li><a th:href="@{/authors}" class="nav-link">Authors</a></li>
-            <li><a th:href="@{/publishers}" class="nav-link">Publishers</a></li>
-            <li><a th:href="@{/categories}" class="nav-link">Categories</a></li>
+            <li><a th:href="@{/}" class="nav-link" th:text="#{header.home}">Home</a></li>
+            <li><a th:href="@{/books}" class="nav-link" th:text="#{header.books}">Books</a></li>
+            <li><a th:href="@{/authors}" class="nav-link" th:text="#{header.authors}">Authors</a></li>
+            <li><a th:href="@{/publishers}" class="nav-link" th:text="#{header.publishers}">Publishers</a></li>
+            <li><a th:href="@{/categories}" class="nav-link" th:text="#{header.categories}">Categories</a></li>
         </ul>
 
         <!-- Рабочая форма поиска -->
         <form class="search-form" th:action="@{/books}" method="get">
-            <input class="search-input" type="text" name="keyword" th:value="${keyword}" placeholder="Название или ISBN...">
-            <button class="search-btn" type="submit">Search</button>
+            <input class="search-input" type="text" name="keyword" th:value="${keyword}" th:placeholder="#{header.search.placeholder}" placeholder="Название или ISBN...">
+            <button class="search-btn" type="submit" th:text="#{header.search.btn}">Search</button>
         </form>
+
+        <!-- Блок переключения языков -->
+        <div class="lang-switcher" style="display: flex; gap: 8px; margin-left: 15px;">
+            <!-- Ссылка на русский язык (используем пустую строку '', чтобы остаться на текущем URL) -->
+            <a th:href="@{''(lang='ru')}" class="lang-link" style="text-decoration: none; color: inherit; font-weight: bold;">RU</a>
+            <span style="color: gray;">|</span>
+            <!-- Ссылка на английский язык -->
+            <a th:href="@{''(lang='en')}" class="lang-link" style="text-decoration: none; color: inherit; font-weight: bold;">EN</a>
+        </div>
     </div>
 </nav>
 
