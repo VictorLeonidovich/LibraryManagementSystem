@@ -42,8 +42,8 @@ public class SecurityConfig {
         http
                 // 1. Настройка защиты CSRF
                 .csrf(csrf -> csrf
-                        // Отключаем CSRF для REST API, консоли H2 и POST-запросов экспорта отчетов
-                        .ignoringRequestMatchers("/api/**", "/h2-console/**", "/books/*/export")
+                        // Отключаем CSRF для REST API, консоли H2, POST-запросов экспорта и внутренних RPC вызовов
+                        .ignoringRequestMatchers("/api/**", "/h2-console/**", "/books/*/export", "/api/v1/internal/**")
                 )
 
                 // 2. Настройка заголовков (Разрешаем фреймы для H2-консоли внутри одного домена)
@@ -59,6 +59,9 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // Разрешаем доступ к эндпоинтам мониторинга (Actuator / Prometheus) без авторизации
                         .requestMatchers("/actuator/**").permitAll()
+
+                        // Безопасный сквозной пропуск для внутренних Loopback HTTP-запросов (WebClient стратегия)
+                        .requestMatchers("/api/v1/internal/**").permitAll()
 
                         // Ограничение прав для REST API бизнес-логики по HTTP методам
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole("ADMIN")

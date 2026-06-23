@@ -4,6 +4,7 @@ import com.kvl.library.entity.Author;
 import com.kvl.library.entity.Book;
 import com.kvl.library.entity.Category;
 import com.kvl.library.entity.Publisher;
+import com.kvl.library.notification.NotificationDispatcher;
 import com.kvl.library.security.JwtRequestFilter;
 import com.kvl.library.service.*;
 import com.kvl.library.service.impl.BookExportFactory;
@@ -51,10 +52,12 @@ class BookControllerTest {
 
     @MockitoBean
     private AuthorService authorService;
+
     @MockitoBean
     private BookExportFactory bookExportFactory;
+
     @MockitoBean
-    private EmailService emailService;
+    private NotificationDispatcher notificationDispatcher;
 
     @MockitoBean
     private JwtRequestFilter jwtRequestFilter;

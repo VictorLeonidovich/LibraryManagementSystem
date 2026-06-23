@@ -217,6 +217,18 @@
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 
+		<!-- RECOVERY & REACTIVE: Spring WebFlux for WebClient strategy -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
+
+		<!-- MESSAGING: Spring Kafka starter for Event-Driven architecture strategy -->
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
+		</dependency>
+
 		<!-- TESTING -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

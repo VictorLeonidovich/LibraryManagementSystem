@@ -3,11 +3,11 @@ package com.kvl.library.controller.ui;
 import com.kvl.library.entity.Book;
 import com.kvl.library.enums.ExportAction;
 import com.kvl.library.enums.ExportFormat;
+import com.kvl.library.notification.NotificationDispatcher;
 import com.kvl.library.service.AuthorService;
 import com.kvl.library.service.BookExportService;
 import com.kvl.library.service.BookService;
 import com.kvl.library.service.CategoryService;
-import com.kvl.library.service.EmailService;
 import com.kvl.library.service.PublisherService;
 import com.kvl.library.service.impl.BookExportFactory;
 import jakarta.validation.Valid;
@@ -33,7 +33,7 @@ public class BookController {
     private final PublisherService publisherService;
     private final AuthorService authorService;
     private final BookExportFactory bookExportFactory;
-    private final EmailService emailService;
+    private final NotificationDispatcher notificationDispatcher;
 
     @GetMapping("/books")
     public String findAllBooks(
@@ -133,7 +133,6 @@ public class BookController {
         BookExportService exportService = bookExportFactory.getService(format);
         byte[] fileContent = exportService.export(book);
 
-        //String fileExtension = format.name().toLowerCase();
         String filename = "book_" + id + "_report." + (format == ExportFormat.XLSX ? "xlsx" : "pdf");
 
         // 3. Выбираем действие: скачать или отправить
@@ -141,7 +140,8 @@ public class BookController {
             String subject = "Карточка книги: " + book.getName();
             String text = "Здравствуйте!\n\nВо вложении находится выгрузка информации по книге \"" + book.getName() + "\".";
 
-            emailService.sendEmailWithAttachment(email, subject, text, fileContent, filename);
+            // Отправка через распределенный фасад стратегий
+            notificationDispatcher.dispatchEmail(email, subject, text, fileContent, filename);
 
             // Так как это POST-запрос с UI формы, для отправки почты сделаем редирект обратно с флеш-сообщением
             redirectAttributes.addFlashAttribute("successMessage", "Отчет успешно отправлен на " + email);
