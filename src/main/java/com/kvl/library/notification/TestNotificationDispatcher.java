@@ -1,6 +1,7 @@
 package com.kvl.library.notification;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -10,7 +11,8 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-@Profile("test")
+@Primary // решает конфликт дублирования бинов в контейнерных тестах!
+@Profile("test | containers")
 public class TestNotificationDispatcher implements NotificationDispatcher {
 
     @Override

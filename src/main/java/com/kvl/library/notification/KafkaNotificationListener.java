@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-@Profile("!test")
+@Profile({"!test", "!containers"})
 @RequiredArgsConstructor
 public class KafkaNotificationListener {
 
@@ -27,7 +27,8 @@ public class KafkaNotificationListener {
      */
     @KafkaListener(
             topics = "${app.notification.kafka.topic}",
-            groupId = "${spring.kafka.consumer.group-id:library-notification-default-group}"
+            groupId = "${spring.kafka.consumer.group-id:library-notification-default-group}",
+            containerFactory = "kafkaListenerContainerFactory"
     )
     public void handleNotificationEvent(EmailNotificationDto payload) {
         log.debug("[Kafka Consumer] Перехвачено распределенное событие из брокера для адреса: {}", payload.getTo());

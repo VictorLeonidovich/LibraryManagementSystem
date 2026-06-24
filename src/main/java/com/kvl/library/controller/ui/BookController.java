@@ -12,6 +12,7 @@ import com.kvl.library.service.PublisherService;
 import com.kvl.library.service.impl.BookExportFactory;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class BookController {
@@ -140,8 +142,17 @@ public class BookController {
             String subject = "Карточка книги: " + book.getName();
             String text = "Здравствуйте!\n\nВо вложении находится выгрузка информации по книге \"" + book.getName() + "\".";
 
-            // Отправка через распределенный фасад стратегий
+            // Создаем стандартный инструмент замера времени Spring
+            org.springframework.util.StopWatch stopWatch = new org.springframework.util.StopWatch();
+
+            log.info("[UI Thread] Старт передачи задачи в диспетчер уведомлений...");
+            stopWatch.start();
+
+            // Вызов распределенного фасада стратегий
             notificationDispatcher.dispatchEmail(email, subject, text, fileContent, filename);
+
+            stopWatch.stop();
+            log.info("[UI Thread] Диспетчер вернул управление. Время блокировки потока UI: {} мс", stopWatch.getTotalTimeMillis());
 
             // Так как это POST-запрос с UI формы, для отправки почты сделаем редирект обратно с флеш-сообщением
             redirectAttributes.addFlashAttribute("successMessage", "Отчет успешно отправлен на " + email);
