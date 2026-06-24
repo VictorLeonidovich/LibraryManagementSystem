@@ -8,14 +8,20 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
-import org.springframework.kafka.core.*;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.support.converter.StringJacksonJsonMessageConverter;
+import org.springframework.kafka.support.mapping.DefaultJacksonJavaTypeMapper;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Конфигурационный класс для явной инициализации инфраструктуры обмена сообщениями Apache Kafka.
- * Гарантирует создание необходимых компонентов независимо от флагов автоконфигурации Spring.
+ * Полностью адаптирован под спецификации безопасности Spring Boot 4.x и Spring Framework 7.0.
  */
 @Configuration
 @Profile({"!test", "!containers"})
@@ -33,8 +39,11 @@ public class KafkaNotificationConfig {
     @Value("${spring.kafka.producer.value-serializer:org.springframework.kafka.support.serializer.JsonSerializer}")
     private String valueSerializer;
 
+    @Value("${spring.kafka.listener.auto-startup:false}")
+    private boolean autoStartup;
+
     /**
-     * Создает фабрику продюсеров с базовыми настройками топологии сети и сериализации.
+     * Конфигурация инфраструктуры Producer (Отправитель сообщений).
      */
     @Bean
     public ProducerFactory<String, EmailNotificationDto> notificationProducerFactory() {
@@ -74,13 +83,14 @@ public class KafkaNotificationConfig {
         ConcurrentKafkaListenerContainerFactory<String, EmailNotificationDto> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(notificationConsumerFactory());
 
+        // Передаем значение флага из файла свойств напрямую в настройки фабрики
+        factory.setAutoStartup(autoStartup);
+
         // 1. Используем специализированный конвертер для текстовых JSON сообщений будущего
-        org.springframework.kafka.support.converter.StringJacksonJsonMessageConverter converter =
-                new org.springframework.kafka.support.converter.StringJacksonJsonMessageConverter();
+        StringJacksonJsonMessageConverter converter = new StringJacksonJsonMessageConverter();
 
         // 2. Настраиваем современный DefaultJacksonJavaTypeMapper под новые стандарты
-        org.springframework.kafka.support.mapping.DefaultJacksonJavaTypeMapper typeMapper =
-                new org.springframework.kafka.support.mapping.DefaultJacksonJavaTypeMapper();
+        DefaultJacksonJavaTypeMapper typeMapper = new DefaultJacksonJavaTypeMapper();
         typeMapper.addTrustedPackages("com.kvl.library.notification");
 
         // 3. Передаем маппер напрямую в конвертер по спецификации Spring Kafka 4
@@ -91,5 +101,4 @@ public class KafkaNotificationConfig {
 
         return factory;
     }
-
 }

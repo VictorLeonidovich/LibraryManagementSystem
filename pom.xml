@@ -339,6 +339,7 @@
 							<exclude>com/kvl/library/dto/**</exclude>
 							<exclude>com/kvl/library/LibraryApplication.class</exclude>
 							<exclude>com/kvl/library/config/**</exclude>
+							<exclude>com/kvl/library/notification/**</exclude>
 						</excludes>
 					</configuration>
 					<executions>
