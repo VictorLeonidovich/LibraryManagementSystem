@@ -340,6 +340,7 @@
 							<exclude>com/kvl/library/LibraryApplication.class</exclude>
 							<exclude>com/kvl/library/config/**</exclude>
 							<exclude>com/kvl/library/notification/**</exclude>
+							<exclude>com/kvl/library/enums/**</exclude>
 						</excludes>
 					</configuration>
 					<executions>

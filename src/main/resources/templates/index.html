@@ -167,24 +167,63 @@
             <div class="featurette-icon-zone"><span style="font-size: 5rem;">✉️</span></div>
         </div>
 
-    </div>
-
-    <!-- ПЕРСПЕКТИВЫ ДАЛЬНЕЙШЕЙ РАЗРАБОТКИ (PROJECT ROADMAP) -->
-    <div class="container featurette-section" style="border-top: 1px solid var(--border); padding-top: 4rem;">
-
-        <div style="text-align: center; margin-bottom: 3rem;">
-            <h2 style="font-size: 2.5rem; font-weight: 800; color: #475569;">🚀 Перспективы дальнейшей разработки</h2>
-            <p style="color: var(--text-muted);">Архитектурные и функциональные задачи для вывода платформы на полноценный Enterprise-уровень</p>
+        <!-- 11. Распределенная система уведомлений и брокер сообщений -->
+        <div class="featurette-row">
+            <div class="featurette-content">
+                <span class="badge-tech">Архитектура</span>
+                <h2 class="featurette-title">Распределенные Уведомления. <span>Kafka & WebClient & Async.</span></h2>
+                <p class="featurette-desc">Архитектура отправки отчетов переведена на паттерн «Стратегия». Внедрен гибкий фасад с поддержкой 4-х режимов передачи данных: от синхронного блокирующего вызова до неблокирующего реактивного HTTP Loopback (WebClient) и событийно-ориентированной EDA-модели на базе легковесного брокера <strong>Apache Kafka KRaft</strong>. Система полностью изолирована от тестовых контекстов JUnit и Testcontainers через динамические флаги автозапуска.</p>
+            </div>
+            <div class="featurette-icon-zone"><span style="font-size: 5rem;">📡</span></div>
         </div>
 
-        <div class="marketing-grid">
-            <!-- Планы 1 -->
-            <div class="tech-card" style="background: #fafafa; border-style: dashed; grid-column: 1 / -1;">
-                <div class="icon-box" style="background: #f1f5f9; color: #475569;">📡</div>
-                <h4 class="card-title">Событийно-Ориентированная Архитектура (EDA) и Симулятор</h4>
-                <p class="card-desc">Разработка изолированного микросервиса для имитации конкурентного поведения множества пользователей. Интеграция высокопроизводительного брокера сообщений <strong>Apache Kafka</strong> в качестве платформы потоковой передачи событий активности в основную систему.</p>
+        <!-- Раздел сравнительного анализа производительности отчетов -->
+        <div class="container" style="margin-top: 5rem; margin-bottom: 5rem;">
+            <div style="text-align: center; margin-bottom: 3rem;">
+                <h3 style="font-size: 2rem; font-weight: 800; color: #475569;">📊 Результаты бенчмаркинга стратегий передачи</h3>
+                <p style="color: var(--text-muted);">Метрики задержки основного потока веб-сервера (UI Thread Latency) при генерации и отправке PDF-отчетов через TLS шлюз</p>
+            </div>
+
+            <div style="overflow-x: auto; background: #ffffff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+                    <thead>
+                    <tr style="background: #f8fafc; border-bottom: 2px solid var(--border);">
+                        <th style="padding: 1rem 1.5rem; font-weight: 700; color: #334155;">Режим работы (Strategy Type)</th>
+                        <th style="padding: 1rem 1.5rem; font-weight: 700; color: #334155;">Время блокировки UI</th>
+                        <th style="padding: 1rem 1.5rem; font-weight: 700; color: #334155;">Механизм изоляции потоков</th>
+                        <th style="padding: 1rem 1.5rem; font-weight: 700; color: #334155;">Статус готовности к нагрузкам</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 1rem 1.5rem; font-weight: 600; color: #ef4444;">🔴 Синхронный (sync)</td>
+                        <td style="padding: 1rem 1.5rem; font-weight: 700; color: #1e293b;">2812 мс</td>
+                        <td style="padding: 1rem 1.5rem; color: var(--text-muted);">Отсутствует (Блокирующий вызов)</td>
+                        <td style="padding: 1rem 1.5rem;"><span style="background: #fee2e2; color: #991b1b; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 600;">Узкое горлышко</span></td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 1rem 1.5rem; font-weight: 600; color: #f59e0b;">🟡 Реактивный (webclient)</td>
+                        <td style="padding: 1rem 1.5rem; font-weight: 700; color: #1e293b;">160 мс</td>
+                        <td style="padding: 1rem 1.5rem; color: var(--text-muted);">Сетевой неблокирующий HTTP REST Loopback</td>
+                        <td style="padding: 1rem 1.5rem;"><span style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 600;">Микросервисный RPC</span></td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 1rem 1.5rem; font-weight: 600; color: #10b981;">🟢 Брокер (kafka)</td>
+                        <td style="padding: 1rem 1.5rem; font-weight: 700; color: #1e293b;">291 мс</td>
+                        <td style="padding: 1rem 1.5rem; color: var(--text-muted);">Распределенная событийная шина (EDA)</td>
+                        <td style="padding: 1rem 1.5rem;"><span style="background: #d1fae5; color: #065f46; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 600;">Enterprise стандарт</span></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 1rem 1.5rem; font-weight: 600; color: #3b82f6;">🔵 Асинхронный (async)</td>
+                        <td style="padding: 1rem 1.5rem; font-weight: 700; color: #1e293b;">5 мс</td>
+                        <td style="padding: 1rem 1.5rem; color: var(--text-muted);">Локальный параллельный пул потоков JVM</td>
+                        <td style="padding: 1rem 1.5rem;"><span style="background: #dbeafe; color: #1e40af; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 600;">Внутренний Async</span></td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
+
     </div>
 
     <!-- КАРТОЧКА РАЗРАБОТЧИКА -->
