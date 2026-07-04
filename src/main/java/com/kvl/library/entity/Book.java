@@ -104,8 +104,10 @@ public class Book {
      * @param author удаляемый автор
      */
     public void removeAuthor(final Author author) {
-        authors.remove(author);
-        author.getBooks().remove(author);
+        if (author != null) {
+            authors.remove(author);
+            author.getBooks().remove(this);
+        }
     }
 
     /**
@@ -114,8 +116,10 @@ public class Book {
      * @param author добавляемый автор
      */
     public void addAuthor(final Author author) {
-        authors.add(author);
-        author.getBooks().add(this);
+        if (author != null) {
+            authors.add(author);
+            author.getBooks().add(this);
+        }
     }
 
     /**
@@ -124,8 +128,10 @@ public class Book {
      * @param category удаляемая категория
      */
     public void removeCategory(final Category category) {
-        categories.remove(category);
-        category.getBooks().remove(category);
+        if (category != null) {
+            categories.remove(category);
+            category.getBooks().remove(this);
+        }
     }
 
     /**
@@ -134,8 +140,10 @@ public class Book {
      * @param category добавляемая категория
      */
     public void addCategory(final Category category) {
-        categories.add(category);
-        category.getBooks().add(this);
+        if (category != null) {
+            categories.add(category);
+            category.getBooks().add(this);
+        }
     }
 
     /**
@@ -144,8 +152,10 @@ public class Book {
      * @param publisher удаляемое издательство
      */
     public void removePublisher(final Publisher publisher) {
-        publishers.remove(publisher);
-        publisher.getBooks().remove(publisher);
+        if (publisher != null) {
+            publishers.remove(publisher);
+            publisher.getBooks().remove(this);
+        }
     }
 
     /**
@@ -154,7 +164,9 @@ public class Book {
      * @param publisher добавляемое издательство
      */
     public void addPublisher(final Publisher publisher) {
-        publishers.add(publisher);
-        publisher.getBooks().add(this);
+        if (publisher != null) {
+            publishers.add(publisher);
+            publisher.getBooks().add(this);
+        }
     }
 }
