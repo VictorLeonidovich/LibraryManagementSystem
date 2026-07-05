@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -14,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.IpAddressMatcher;
 
 /**
  * Главный класс конфигурации безопасности приложения.
@@ -51,29 +53,64 @@ public class SecurityConfig {
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
                 )
 
-                // 3. Настройка прав доступа к URL ресурсам
+                // 3. Настройка прав доступа к URL ресурсам (Принцип минимальных привилегий)
                 .authorizeHttpRequests(auth -> auth
-                        // Сначала объявляем все публичные технические эндпоинты обычными строками
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // =========================================================================
+                        // СЕГМЕНТ 1: ПУБЛИЧНЫЙ ДОСТУП (PUBLIC)
+                        // =========================================================================
+                        // Статические ресурсы веб-интерфейса Thymeleaf
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
+                        // Техническая документация Swagger UI / OpenAPI
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        // Разрешаем доступ к эндпоинтам мониторинга (Actuator / Prometheus) без авторизации
-                        .requestMatchers("/actuator/**").permitAll()
+                        // Встроенная веб-консоль базы данных H2 для локальной разработки
+                        .requestMatchers("/h2-console/**").permitAll()
+                        // Открытые эндпоинты регистрации и аутентификации пользователей в API
+                        .requestMatchers("/api/auth/**").permitAll()
+                        // Открытые веб-страницы и формы UI-контроллеров (необходимы в режиме STATELESS)
+                        .requestMatchers("/", "/login", "/error").permitAll()
+                        .requestMatchers("/books/**", "/book/**", "/remove-book/**", "/update-book/**", "/save-book/**", "/add-book/**").permitAll()
+                        .requestMatchers("/authors/**", "/author/**", "/remove-author/**", "/update-author/**", "/save-author/**", "/add-author/**").permitAll()
+                        .requestMatchers("/categories/**", "/category/**", "/remove-category/**", "/update-category/**", "/save-category/**", "/add-category/**").permitAll()
+                        .requestMatchers("/publishers/**", "/publisher/**", "/remove-publisher/**", "/update-publisher/**", "/save-publisher/**", "/add-publisher/**").permitAll()
 
-                        // Безопасный сквозной пропуск для внутренних Loopback HTTP-запросов (WebClient стратегия)
-                        .requestMatchers("/api/v1/internal/**").permitAll()
+                        // =========================================================================
+                        // СЕГМЕНТ 2: ВНУТРЕННИЙ / СЕРВИСНЫЙ ДОСТУП (INTERNAL)
+                        // =========================================================================
+                        // Безопасный пропуск для внутренних Multipart-запросов отправки почты.
+                        // Ограничиваем доступ через IpAddressMatcher: запросы принимает только с локального хоста (IPv4 и IPv6).
+                        .requestMatchers("/api/v1/internal/**").access((authentication, context) ->
+                                new AuthorizationDecision(
+                                        new IpAddressMatcher("127.0.0.1").matches(context.getRequest()) ||
+                                                new IpAddressMatcher("::1").matches(context.getRequest())
+                                )
+                        )
 
-                        // Ограничение прав для REST API бизнес-логики по HTTP методам
+                        // Метрики Prometheus открыты для сбора внешней системой мониторинга (только GET)
+                        .requestMatchers(HttpMethod.GET, "/actuator/prometheus").permitAll()
+
+                        // =========================================================================
+                        // СЕГМЕНТ 3: АДМИНИСТРАТИВНЫЙ ДОСТУП (ADMIN)
+                        // =========================================================================
+                        // Все остальные критические панели и эндпоинты Actuator (env, beans, dump) закрываем
+                        .requestMatchers("/actuator/**").hasRole("ADMIN")
+                        // Модификация данных в REST API (удаление, создание, обновление) разрешена только ADMIN
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAnyRole("USER", "ADMIN")
 
-                        // Все остальные запросы к REST API требуют обязательный токен JWT
+                        // =========================================================================
+                        // СЕГМЕНТ 4: ПОЛЬЗОВАТЕЛЬСКИЙ ДОСТУП (USER / ADMIN)
+                        // =========================================================================
+                        // Чтение данных (GET-запросы) из бизнес-логики REST API разрешено ролям USER и ADMIN
+                        .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAnyRole("USER", "ADMIN")
+                        // Любые другие непредусмотренные внутренние запросы к подсистеме /api/** требуют токен
                         .requestMatchers("/api/**").authenticated()
 
-                        // Разрешаем свободный доступ к Thymeleaf UI контроллерам и статике (CSS, JS)
-                        .anyRequest().permitAll()
+                        // =========================================================================
+                        // ЖЕЛЕЗОБЕТОННЫЙ ПРЕДОХРАНИТЕЛЬ НА ПЕРИМЕТРЕ
+                        // =========================================================================
+                        // Всё, что забыли или не указали явно выше, автоматически блокируется
+                        .anyRequest().authenticated()
                 )
 
                 // 4. Переводим сессии управления в режим STATELESS (не сохраняем контекст на сервере)
