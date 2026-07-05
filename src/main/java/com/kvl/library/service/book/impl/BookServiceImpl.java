@@ -98,12 +98,35 @@ public class BookServiceImpl implements BookService {
     @Transactional
     @CacheEvict(value = CacheConfig.POPULAR_ISBNS_CACHE, allEntries = true)
     public void updateBook(final Book book) {
-        log.info("Updating book '{}' in the database", book);
-        // Предохранитель от создания дубликатов при отправке некорректных веб-форм
-        if (!bookRepository.existsById(book.getId())) {
-            throw new EntityNotFoundException("Book with ID " + book.getId() + " was not found");
+        log.info("Updating book with ID '{}' in the database", book.getId());
+
+        // 1. Находим существующую валидную запись из базы данных (наш сохраненный граф)
+        // Если книга не найдена, findById сам выбросит правильный EntityNotFoundException
+        Book existingBook = findById(book.getId());
+
+        // 2. Модифицируем (мутируем) только разрешенные бизнес-поля
+        existingBook.setName(book.getName());
+        existingBook.setIsbn(book.getIsbn());
+        existingBook.setDescription(book.getDescription());
+
+        // 3. Синхронизируем связи в памяти через утилитарные методы (очищаем старые, прописываем новые)
+        existingBook.getAuthors().clear();
+        if (book.getAuthors() != null) {
+            book.getAuthors().forEach(existingBook::addAuthor);
         }
-        bookRepository.save(book);
+
+        existingBook.getCategories().clear();
+        if (book.getCategories() != null) {
+            book.getCategories().forEach(existingBook::addCategory);
+        }
+
+        existingBook.getPublishers().clear();
+        if (book.getPublishers() != null) {
+            book.getPublishers().forEach(existingBook::addPublisher);
+        }
+
+        // 4. Сохраняем обновленный управляемый объект (Managed Entity)
+        bookRepository.save(existingBook);
     }
 
     @Override

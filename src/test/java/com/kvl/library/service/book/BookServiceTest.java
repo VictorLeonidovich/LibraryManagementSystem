@@ -144,27 +144,52 @@ class BookServiceTest {
     }
 
     @Test
-    @DisplayName("updateBook() should successfully save updated book when it exists")
+    @DisplayName("updateBook() should successfully mutate and save updated book when it exists")
     void updateBook_WhenBookExists_ShouldSaveBook() {
-        when(bookRepository.existsById(testBook.getId())).thenReturn(true);
-        when(bookRepository.save(any(Book.class))).thenReturn(testBook);
+        // Подготавливаем существующую в БД книгу (старое состояние)
+        Book existingBook = new Book();
+        existingBook.setId(bookId);
+        existingBook.setName("Старое название");
+        existingBook.setIsbn("111-1-111-11111-1");
+        existingBook.setDescription("Старое описание");
 
-        bookService.updateBook(testBook);
+        // Подготавливаем новые данные для обновления (из веб-формы / DTO)
+        Book updatedData = new Book();
+        updatedData.setId(bookId);
+        updatedData.setName("Война и мир");
+        updatedData.setIsbn("978-5-699-12345-6");
+        updatedData.setDescription("Исторический роман-эпопея.");
 
-        verify(bookRepository, times(1)).existsById(testBook.getId());
-        verify(bookRepository, times(1)).save(testBook);
+        // Мокаем цепочку: находим старую книгу, сохраняем обновленную
+        when(bookRepository.findById(bookId)).thenReturn(Optional.of(existingBook));
+        when(bookRepository.save(any(Book.class))).thenReturn(existingBook);
+
+        // Запуск бизнес-логики
+        bookService.updateBook(updatedData);
+
+        // Проверяем, что метод findById был вызван вместо старого existsById
+        verify(bookRepository, times(1)).findById(bookId);
+
+        // Проверяем, что поля старого управляемого объекта корректно мутировали в новые значения
+        assertThat(existingBook.getName()).isEqualTo("Война и мир");
+        assertThat(existingBook.getIsbn()).isEqualTo("978-5-699-12345-6");
+        assertThat(existingBook.getDescription()).isEqualTo("Исторический роман-эпопея.");
+
+        verify(bookRepository, times(1)).save(existingBook);
     }
 
     @Test
-    @DisplayName("updateBook() should throw EntityNotFoundException when book does not exist")
+    @DisplayName("updateBook() should throw EntityNotFoundException when book does not exist in database")
     void updateBook_WhenBookDoesNotExist_ShouldThrowException() {
-        when(bookRepository.existsById(testBook.getId())).thenReturn(false);
+        // Если книга не найдена в базе при обновлении
+        when(bookRepository.findById(testBook.getId())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> bookService.updateBook(testBook))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("Book with ID " + testBook.getId() + " was not found");
 
-        verify(bookRepository, times(1)).existsById(testBook.getId());
+        // Проверяем, что безусловно вылетает ошибка и сохранения не происходит
+        verify(bookRepository, times(1)).findById(testBook.getId());
         verify(bookRepository, never()).save(any(Book.class));
     }
 
