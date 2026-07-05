@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("BookRepository Integration Tests with Testcontainers (PostgreSQL)")
 class BookRepositoryTest extends BaseContainersTest {
+
+    @Autowired
+    private TestEntityManager entityManager;
 
     @Autowired
     private BookRepository bookRepository;
@@ -151,5 +155,56 @@ class BookRepositoryTest extends BaseContainersTest {
         // Проверяем, что связанные сущности НЕ удалились из базы каскадом (они должны жить отдельно)
         assertThat(authorRepository.findAll()).isNotEmpty();
         assertThat(categoryRepository.findAll()).isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("Should successfully reload full bidirectional graph from database after session eviction")
+    void save_ShouldSurviveSessionEvictionAndReloadGraphFromDatabase() {
+        // 1. Создаем новые сущности-справочники через репозитории
+        Author author = authorRepository.save(new Author("Martin Fowler", "Software architecture pioneer."));
+        Category category = categoryRepository.save(new Category("Software Architecture"));
+        Publisher publisher = publisherRepository.save(new Publisher("Addison-Wesley"));
+
+        // 2. Создаем книгу и связываем объекты в памяти через утилитарные методы
+        Book book = new Book("978-0-13-475759-9", "Refactoring", "Improving the Design of Existing Code.");
+        book.addAuthor(author);
+        book.addCategory(category);
+        book.addPublisher(publisher);
+
+        // 3. Сохраняем книгу в базу данных
+        Book savedBook = bookRepository.save(book);
+        Long bookId = savedBook.getId();
+
+        // 4. Принудительно сбрасываем кэш Hibernate
+        // flush() отправляет SQL-инструкции в базу PostgreSQL внутри контейнера
+        // clear() полностью очищает сессию (Persistence Context) в памяти
+        entityManager.flush();
+        entityManager.clear();
+
+        // 5. Загружаем книгу заново по ID (здесь сработает настроенный @EntityGraph)
+        Optional<Book> foundBookOpt = bookRepository.findById(bookId);
+
+        // 6. Проверяем, что книга и весь граф ее связей успешно поднялись из реальной БД
+        assertThat(foundBookOpt).isPresent();
+        Book foundBook = foundBookOpt.get();
+
+        assertThat(foundBook.getName()).isEqualTo("Refactoring");
+        assertThat(foundBook.getIsbn()).isEqualTo("978-0-13-475759-9");
+
+        // Проверяем наличие связей с авторами, жанрами и издательствами после загрузки из базы
+        assertThat(foundBook.getAuthors())
+                .hasSize(1)
+                .extracting(Author::getName)
+                .containsExactly("Martin Fowler");
+
+        assertThat(foundBook.getCategories())
+                .hasSize(1)
+                .extracting(Category::getName)
+                .containsExactly("Software Architecture");
+
+        assertThat(foundBook.getPublishers())
+                .hasSize(1)
+                .extracting(Publisher::getName)
+                .containsExactly("Addison-Wesley");
     }
 }
