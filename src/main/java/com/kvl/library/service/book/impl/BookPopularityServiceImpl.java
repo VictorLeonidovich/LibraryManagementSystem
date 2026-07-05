@@ -3,6 +3,7 @@ package com.kvl.library.service.book.impl;
 import com.kvl.library.service.book.BookPopularityService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -37,8 +38,8 @@ public class BookPopularityServiceImpl implements BookPopularityService {
             if (redisTemplate != null && isbn != null && !isbn.isBlank()) {
                 redisTemplate.opsForZSet().incrementScore(POPULAR_BOOKS_KEY, isbn, 1);
             }
-        } catch (Exception e) {
-            log.warn("Failed to increment book view in Redis: {}", e.getMessage());
+        } catch (DataAccessException e) {
+            log.warn("Redis infrastructure error while incrementing book view for ISBN '{}': {}", isbn, e.getMessage());
         }
     }
 
@@ -48,8 +49,8 @@ public class BookPopularityServiceImpl implements BookPopularityService {
             if (redisTemplate != null && isbn != null && !isbn.isBlank()) {
                 redisTemplate.opsForZSet().remove(POPULAR_BOOKS_KEY, isbn);
             }
-        } catch (Exception e) {
-            log.warn("Failed to remove book from Redis sorted set: {}", e.getMessage());
+        } catch (DataAccessException e) {
+            log.warn("Redis infrastructure error while removing book with ISBN '{}': {}", isbn, e.getMessage());
         }
     }
 
@@ -62,8 +63,8 @@ public class BookPopularityServiceImpl implements BookPopularityService {
                     return typedTupleSet.stream().toList();
                 }
             }
-        } catch (Exception e) {
-            log.warn("Failed to fetch from Redis sorted set: {}", e.getMessage());
+        } catch (DataAccessException e) {
+            log.warn("Redis infrastructure error while fetching top {} books: {}", limit, e.getMessage());
         }
         return Collections.emptyList();
     }

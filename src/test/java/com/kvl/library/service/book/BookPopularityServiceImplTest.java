@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 
@@ -60,11 +61,11 @@ class BookPopularityServiceImplTest {
     @Test
     @DisplayName("incrementView() should catch exceptions gracefully and log a warning if Redis is down")
     void incrementView_WhenRedisThrowsException_ShouldHandleGracefully() {
-        // Симулируем падение Redis
+        // Симулируем стандартную ошибку Spring Data (например, таймаут соединения с Redis)
         when(zSetOperations.incrementScore(anyString(), anyString(), anyDouble()))
-                .thenThrow(new RuntimeException("Redis connection refused"));
+                .thenThrow(new QueryTimeoutException("Redis connection timed out"));
 
-        // Метод не должен выбросить исключение наверх и уронить бизнес-логику приложения
+        // Теперь метод успешно перехватит DataAccessException и не выбросит его наружу
         popularityService.incrementView(isbn);
 
         verify(zSetOperations, times(1)).incrementScore(redisKey, isbn, 1.0);
