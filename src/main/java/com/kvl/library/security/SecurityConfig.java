@@ -3,6 +3,7 @@ package com.kvl.library.security;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authorization.AuthorizationDecision;
@@ -21,8 +22,8 @@ import org.springframework.security.web.util.matcher.IpAddressMatcher;
 /**
  * Главный класс конфигурации безопасности приложения.
  * <p>
- * Настраивает цепочку фильтров безопасности (SecurityFilterChain) для одновременной
- * поддержки Stateless REST API (на основе JWT) и Stateful Web UI (Thymeleaf).
+ * Настраивает изолированные цепочки фильтров безопасности (SecurityFilterChain)
+ * для раздельной поддержки Stateless REST API и Web UI слоев.
  */
 @Configuration
 @EnableWebSecurity
@@ -44,90 +45,95 @@ public class SecurityConfig {
         this.jwtRequestFilter = jwtRequestFilter;
     }
 
+    /**
+     * ЦЕПОЧКА 1: Защита REST API подсистемы.
+     * <p>
+     * Перехватывает исключительно запросы, начинающиеся с /api/**. Работает в режиме Stateless.
+     */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(1) // Высокий приоритет: сначала проверяем, не относится ли запрос к REST API
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 1. Настройка защиты CSRF
-                .csrf(csrf -> csrf
-                        // Отключаем CSRF для REST API, консоли H2, POST-запросов экспорта и внутренних RPC вызовов
-                        .ignoringRequestMatchers("/api/**", "/h2-console/**", "/books/*/export", "/api/v1/internal/**")
+                // Привязываем эту цепочку строго к путям REST API
+                .securityMatcher("/api/**")
+
+                // Отключаем CSRF, так как REST API работает на токенах (Stateless)
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+
+                .authorizeHttpRequests(auth -> auth
+                        // Открытые эндпоинты регистрации и аутентификации
+                        .requestMatchers("/api/auth/**").permitAll()
+
+                        // Многоуровневая защита внутренних почтовых RPC-вызовов (Token + IP Allowlist)
+                        .requestMatchers("/api/v1/internal/**").access((authentication, context) -> {
+                            String requestToken = context.getRequest().getHeader("X-Internal-Token");
+                            boolean isTokenValid = internalToken.equals(requestToken);
+                            boolean isIpValid = new IpAddressMatcher("127.0.0.1").matches(context.getRequest()) ||
+                                    new IpAddressMatcher("::1").matches(context.getRequest());
+                            return new AuthorizationDecision(isTokenValid && isIpValid);
+                        })
+
+                        // Разграничение прав доступа к бизнес-логике REST API по HTTP-методам
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAnyRole("USER", "ADMIN")
+
+                        // Любые другие непредусмотренные REST-запросы требуют токен
+                        .anyRequest().authenticated()
                 )
 
-                // 2. Настройка заголовков (Разрешаем фреймы для H2-консоли внутри одного домена)
+                // Переводим API сессии в режим STATELESS
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                // Подключаем JWT фильтр проверки токенов
+                .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    /**
+     * ЦЕПОЧКА 2: Защита Web UI (Thymeleaf), статики и системного мониторинга.
+     * <p>
+     * Перехватывает все остальные запросы, которые не ушли в REST API.
+     */
+    @Bean
+    @Order(2) // Меньший приоритет: подхватывает всё, что пролетело мимо первой цепочки
+    public SecurityFilterChain uiSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                // Отключаем CSRF для консоли H2 и форм экспорта книг
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**", "/books/*/export"))
+
+                // Разрешаем фреймы для H2-консоли внутри одного домена
                 .headers(headers -> headers
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
                 )
 
-                // 3. Настройка прав доступа к URL ресурсам (Принцип минимальных привилегий)
                 .authorizeHttpRequests(auth -> auth
-                        // =========================================================================
-                        // СЕГМЕНТ 1: ПУБЛИЧНЫЙ ДОСТУП (PUBLIC)
-                        // =========================================================================
-                        // Статические ресурсы веб-интерфейса Thymeleaf
+                        // Статические ресурсы интерфейса Thymeleaf
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                         // Техническая документация Swagger UI / OpenAPI
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        // Встроенная веб-консоль базы данных H2 для локальной разработки
+                        // Встроенная веб-консоль базы данных H2
                         .requestMatchers("/h2-console/**").permitAll()
-                        // Открытые эндпоинты регистрации и аутентификации пользователей в API
-                        .requestMatchers("/api/auth/**").permitAll()
-                        // Открытые веб-страницы и формы UI-контроллеров (необходимы в режиме STATELESS)
+
+                        // Метрики Prometheus открыты для сбора (только GET)
+                        .requestMatchers(HttpMethod.GET, "/actuator/prometheus").permitAll()
+                        // Все остальные критические системные панели Actuator закрываем ролью ADMIN
+                        .requestMatchers("/actuator/**").hasRole("ADMIN")
+
+                        // Открытые веб-страницы и формы Thymeleaf UI-контроллеров
                         .requestMatchers("/", "/login", "/error").permitAll()
                         .requestMatchers("/books/**", "/book/**", "/remove-book/**", "/update-book/**", "/save-book/**", "/add-book/**").permitAll()
                         .requestMatchers("/authors/**", "/author/**", "/remove-author/**", "/update-author/**", "/save-author/**", "/add-author/**").permitAll()
                         .requestMatchers("/categories/**", "/category/**", "/remove-category/**", "/update-category/**", "/save-category/**", "/add-category/**").permitAll()
                         .requestMatchers("/publishers/**", "/publisher/**", "/remove-publisher/**", "/update-publisher/**", "/save-publisher/**", "/add-publisher/**").permitAll()
 
-                        // =========================================================================
-                        // СЕГМЕНТ 2: ВНУТРЕННИЙ / СЕРВИСНЫЙ ДОСТУП (INTERNAL МНОГОУРОВНЕВАЯ ЗАЩИТА)
-                        // =========================================================================
-                        // Защищаем внутренний RPC-слой: проверяем одновременно и IP-адрес (Loopback),
-                        // и наличие секретного токена в HTTP-заголовке "X-Internal-Token".
-                        .requestMatchers("/api/v1/internal/**").access((authentication, context) -> {
-                            String requestToken = context.getRequest().getHeader("X-Internal-Token");
-                            boolean isTokenValid = internalToken.equals(requestToken);
-
-                            boolean isIpValid = new IpAddressMatcher("127.0.0.1").matches(context.getRequest()) ||
-                                    new IpAddressMatcher("::1").matches(context.getRequest());
-
-                            return new AuthorizationDecision(isTokenValid && isIpValid);
-                        })
-
-                        // Метрики Prometheus открыты для сбора внешней системой мониторинга (только GET)
-                        .requestMatchers(HttpMethod.GET, "/actuator/prometheus").permitAll()
-
-                        // =========================================================================
-                        // СЕГМЕНТ 3: АДМИНИСТРАТИВНЫЙ ДОСТУП (ADMIN)
-                        // =========================================================================
-                        // Все остальные критические панели и эндпоинты Actuator (env, beans, dump) закрываем
-                        .requestMatchers("/actuator/**").hasRole("ADMIN")
-                        // Модификация данных в REST API (удаление, создание, обновление) разрешена только ADMIN
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/**").hasRole("ADMIN")
-
-                        // =========================================================================
-                        // СЕГМЕНТ 4: ПОЛЬЗОВАТЕЛЬСКИЙ ДОСТУП (USER / ADMIN)
-                        // =========================================================================
-                        // Чтение данных (GET-запросы) из бизнес-логики REST API разрешено ролям USER и ADMIN
-                        .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAnyRole("USER", "ADMIN")
-                        // Любые другие непредусмотренные внутренние запросы к подсистеме /api/** требуют токен
-                        .requestMatchers("/api/**").authenticated()
-
-                        // =========================================================================
-                        // ЖЕЛЕЗОБЕТОННЫЙ ПРЕДОХРАНИТЕЛЬ НА ПЕРИМЕТРЕ
-                        // =========================================================================
-                        // Всё, что забыли или не указали явно выше, автоматически блокируется
+                        // Предохранитель для UI ресурсов
                         .anyRequest().authenticated()
-                )
-
-                // 4. Переводим сессии управления в режим STATELESS (не сохраняем контекст на сервере)
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-
-                // 5. Интегрируем наш JWT фильтр проверки подлинности перед стандартным фильтром
-                .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+                );
 
         return http.build();
     }
