@@ -1,7 +1,7 @@
 package com.kvl.library.controller.ui;
 
 import com.kvl.library.entity.Publisher;
-import com.kvl.library.service.PublisherService;
+import com.kvl.library.service.core.PublisherService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

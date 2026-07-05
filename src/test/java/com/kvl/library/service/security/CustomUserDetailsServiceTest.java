@@ -1,8 +1,8 @@
-package com.kvl.library.service;
+package com.kvl.library.service.security;
 
 import com.kvl.library.entity.User;
 import com.kvl.library.repository.UserRepository;
-import com.kvl.library.service.impl.CustomUserDetailsServiceImpl;
+import com.kvl.library.service.security.impl.CustomUserDetailsServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

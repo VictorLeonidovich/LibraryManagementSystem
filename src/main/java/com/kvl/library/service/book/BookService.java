@@ -1,4 +1,4 @@
-package com.kvl.library.service;
+package com.kvl.library.service.book;
 
 import com.kvl.library.entity.Book;
 import org.springframework.data.domain.Page;

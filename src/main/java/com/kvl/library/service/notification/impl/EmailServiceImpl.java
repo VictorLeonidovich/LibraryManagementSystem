@@ -1,6 +1,6 @@
-package com.kvl.library.service.impl;
+package com.kvl.library.service.notification.impl;
 
-import com.kvl.library.service.EmailService;
+import com.kvl.library.service.notification.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;

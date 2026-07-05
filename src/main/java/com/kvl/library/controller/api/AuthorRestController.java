@@ -4,7 +4,7 @@ import com.kvl.library.dto.AuthorRequestDTO;
 import com.kvl.library.dto.AuthorResponseDTO;
 import com.kvl.library.entity.Author;
 import com.kvl.library.mapper.AuthorMapper;
-import com.kvl.library.service.AuthorService;
+import com.kvl.library.service.core.AuthorService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

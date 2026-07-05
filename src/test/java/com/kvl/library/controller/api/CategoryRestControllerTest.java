@@ -7,7 +7,7 @@ import com.kvl.library.entity.Category;
 import com.kvl.library.exception.EntityNotFoundException;
 import com.kvl.library.mapper.CategoryMapper;
 import com.kvl.library.security.JwtRequestFilter;
-import com.kvl.library.service.CategoryService;
+import com.kvl.library.service.core.CategoryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

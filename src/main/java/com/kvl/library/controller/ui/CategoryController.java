@@ -1,7 +1,7 @@
 package com.kvl.library.controller.ui;
 
 import com.kvl.library.entity.Category;
-import com.kvl.library.service.CategoryService;
+import com.kvl.library.service.core.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

@@ -1,10 +1,10 @@
-package com.kvl.library.service.impl;
+package com.kvl.library.service.book.impl;
 
 import com.kvl.library.config.CacheConfig;
 import com.kvl.library.entity.Book;
 import com.kvl.library.exception.EntityNotFoundException;
 import com.kvl.library.repository.BookRepository;
-import com.kvl.library.service.BookService;
+import com.kvl.library.service.book.BookService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;

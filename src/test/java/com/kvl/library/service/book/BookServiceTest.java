@@ -1,10 +1,10 @@
-package com.kvl.library.service;
+package com.kvl.library.service.book;
 
 
 import com.kvl.library.entity.Book;
 import com.kvl.library.exception.EntityNotFoundException;
 import com.kvl.library.repository.BookRepository;
-import com.kvl.library.service.impl.BookServiceImpl;
+import com.kvl.library.service.book.impl.BookServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

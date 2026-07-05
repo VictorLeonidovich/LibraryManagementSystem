@@ -7,7 +7,7 @@ import com.kvl.library.entity.Author;
 import com.kvl.library.exception.EntityNotFoundException;
 import com.kvl.library.mapper.AuthorMapper;
 import com.kvl.library.security.JwtRequestFilter;
-import com.kvl.library.service.AuthorService;
+import com.kvl.library.service.core.AuthorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

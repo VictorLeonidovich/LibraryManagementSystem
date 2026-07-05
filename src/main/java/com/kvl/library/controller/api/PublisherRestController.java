@@ -4,7 +4,7 @@ import com.kvl.library.dto.PublisherRequestDTO;
 import com.kvl.library.dto.PublisherResponseDTO;
 import com.kvl.library.entity.Publisher;
 import com.kvl.library.mapper.PublisherMapper;
-import com.kvl.library.service.PublisherService;
+import com.kvl.library.service.core.PublisherService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

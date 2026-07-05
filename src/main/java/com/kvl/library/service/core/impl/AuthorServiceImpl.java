@@ -1,9 +1,9 @@
-package com.kvl.library.service.impl;
+package com.kvl.library.service.core.impl;
 
 import com.kvl.library.entity.Author;
 import com.kvl.library.exception.EntityNotFoundException;
 import com.kvl.library.repository.AuthorRepository;
-import com.kvl.library.service.AuthorService;
+import com.kvl.library.service.core.AuthorService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

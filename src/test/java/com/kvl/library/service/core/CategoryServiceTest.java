@@ -1,9 +1,9 @@
-package com.kvl.library.service;
+package com.kvl.library.service.core;
 
 import com.kvl.library.entity.Category;
 import com.kvl.library.exception.EntityNotFoundException;
 import com.kvl.library.repository.CategoryRepository;
-import com.kvl.library.service.impl.CategoryServiceImpl;
+import com.kvl.library.service.core.impl.CategoryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

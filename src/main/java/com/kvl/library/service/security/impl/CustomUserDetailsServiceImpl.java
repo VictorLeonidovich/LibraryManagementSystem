@@ -1,4 +1,4 @@
-package com.kvl.library.service.impl;
+package com.kvl.library.service.security.impl;
 
 import com.kvl.library.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;

@@ -1,9 +1,9 @@
-package com.kvl.library.service;
+package com.kvl.library.service.core;
 
 import com.kvl.library.entity.Author;
 import com.kvl.library.exception.EntityNotFoundException;
 import com.kvl.library.repository.AuthorRepository;
-import com.kvl.library.service.impl.AuthorServiceImpl;
+import com.kvl.library.service.core.impl.AuthorServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

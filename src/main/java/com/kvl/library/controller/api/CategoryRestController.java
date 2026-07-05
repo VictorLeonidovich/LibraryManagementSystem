@@ -4,7 +4,7 @@ import com.kvl.library.dto.CategoryRequestDTO;
 import com.kvl.library.dto.CategoryResponseDTO;
 import com.kvl.library.entity.Category;
 import com.kvl.library.mapper.CategoryMapper;
-import com.kvl.library.service.CategoryService;
+import com.kvl.library.service.core.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

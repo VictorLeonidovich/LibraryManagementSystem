@@ -1,7 +1,7 @@
 package com.kvl.library.notification.strategy;
 
 import com.kvl.library.notification.NotificationDispatcher;
-import com.kvl.library.service.EmailService;
+import com.kvl.library.service.notification.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

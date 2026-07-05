@@ -1,4 +1,4 @@
-package com.kvl.library.service;
+package com.kvl.library.service.notification;
 
 /**
  * Сервис для отправки уведомлений по электронной почте.
