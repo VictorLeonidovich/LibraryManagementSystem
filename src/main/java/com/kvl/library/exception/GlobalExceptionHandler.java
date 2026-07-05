@@ -1,6 +1,6 @@
 package com.kvl.library.exception;
 
-import lombok.extern.slf4j.Slf4j;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,7 +15,6 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
  * Применяется ко всем классам, помеченным аннотацией {@link Controller} (и исключает REST-контроллеры).
  * Выполняет перенаправление на специализированные HTML-страницы ошибок интерфейса.
  */
-@Slf4j
 @ControllerAdvice(annotations = Controller.class)
 public class GlobalExceptionHandler {
 
@@ -23,16 +22,28 @@ public class GlobalExceptionHandler {
     private boolean showDetails;
 
     @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
-    public String handleNotFoundError(Exception ex, Model model) {
-        log.error("The UI page or static resource was not found: {}", ex.getMessage());
-        model.addAttribute("errorMessage", "Запрашиваемая страница не найдена.");
+    public String handleNotFoundError(Exception ex, HttpServletRequest request, Model model) {
+        // 1. Фабрика определяет тип ошибки
+        ApiErrorCode errorCode = ErrorDetailsHelper.resolveErrorCode(ex);
+
+        // 2. Фабрика логирует в стандартном формате
+        ErrorDetailsHelper.logException(ex, request, errorCode);
+
+        // 3. Достаем текст сообщения напрямую из контракта фабрики
+        model.addAttribute("errorMessage", errorCode.getUiMessage());
         return "error/404";
     }
 
     @ExceptionHandler(Exception.class)
-    public String handleGlobalException(Exception ex, Model model) {
-        log.error("An unhandled UI exception occurred: ", ex);
-        model.addAttribute("errorMessage", "Произошла внутренняя ошибка сервера. Пожалуйста, попробуйте позже.");
+    public String handleGlobalException(Exception ex, HttpServletRequest request, Model model) {
+        // 1. Фабрика определяет тип ошибки
+        ApiErrorCode errorCode = ErrorDetailsHelper.resolveErrorCode(ex);
+
+        // 2. Фабрика логирует в стандартном формате
+        ErrorDetailsHelper.logException(ex, request, errorCode);
+
+        // 3. Достаем текст сообщения напрямую из контракта фабрики
+        model.addAttribute("errorMessage", errorCode.getUiMessage());
 
         if (showDetails) {
             model.addAttribute("technicalDetails", ex.getMessage()); // Не рекомендуется показывать пользователям в продакшене
