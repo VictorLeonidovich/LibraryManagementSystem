@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kvl.library.controller.BaseWebContainersTest;
 import com.kvl.library.dto.AuthorRequestDTO;
 import com.kvl.library.entity.Author;
+import com.kvl.library.exception.ApiErrorCode;
 import com.kvl.library.repository.AuthorRepository;
 import com.kvl.library.security.JwtRequestFilter;
 import org.junit.jupiter.api.BeforeEach;
@@ -102,8 +103,9 @@ class AuthorRestControllerContainersTest extends BaseWebContainersTest {
     void getAuthorById_WhenNotFound_ShouldReturn404ApiError() throws Exception {
         mockMvc.perform(get("/api/v1/authors/99999"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ENTITY_NOT_FOUND.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ENTITY_NOT_FOUND.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ENTITY_NOT_FOUND.getValue()))
                 .andExpect(jsonPath("$.path").value("/api/v1/authors/99999"));
     }
 
@@ -133,21 +135,26 @@ class AuthorRestControllerContainersTest extends BaseWebContainersTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequestDTO)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.message").value(ApiErrorCode.VALIDATION_FAILED.getDefaultMessage()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.VALIDATION_FAILED.getValue()))
                 .andExpect(jsonPath("$.validationErrors.name").exists())
                 .andExpect(jsonPath("$.validationErrors.description").value("Описание должно быть длиной от 2 до 250 символов"));
     }
 
     @Test
-    @DisplayName("POST /api/v1/authors - Should return 403 Forbidden when user is not ADMIN")
+    @DisplayName("POST /api/v1/authors - Should return 403 Forbidden with ACCESS_DENIED errorCode when user is not ADMIN")
     @WithMockUser(roles = "USER")
     void createAuthor_AsUser_ShouldReturnForbidden() throws Exception {
         mockMvc.perform(post("/api/v1/authors")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequestDTO)))
-                .andExpect(status().isForbidden()); // Spring Security по умолчанию возвращает 403 без тела JSON
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ACCESS_DENIED.getValue()));
     }
 
     @Test
@@ -176,15 +183,19 @@ class AuthorRestControllerContainersTest extends BaseWebContainersTest {
 
         // Для веб-тестов эталонной проверкой удаления является повторный HTTP GET-запрос
         mockMvc.perform(get("/api/v1/authors/" + savedAuthor.getId()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ENTITY_NOT_FOUND.getValue()));
     }
 
     @Test
-    @DisplayName("DELETE /api/v1/authors/{id} - Should return 403 Forbidden when user is not ADMIN")
+    @DisplayName("DELETE /api/v1/authors/{id} - Should return 403 Forbidden with ACCESS_DENIED errorCode when user is not ADMIN")
     @WithMockUser(roles = "USER")
     void deleteAuthor_AsUser_ShouldReturnForbidden() throws Exception {
         mockMvc.perform(delete("/api/v1/authors/" + savedAuthor.getId()).with(csrf()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ACCESS_DENIED.getValue()));
 
         // Проверяем через репозиторий, что автор остался в безопасности в PostgreSQL
         assertThat(authorRepository.existsById(savedAuthor.getId())).isTrue();

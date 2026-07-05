@@ -1,5 +1,6 @@
 package com.kvl.library.dto.error;
 
+import com.kvl.library.exception.ApiErrorCode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,6 +20,9 @@ public class ApiErrorResponse {
 
     @Schema(description = "Текстовое описание HTTP статуса", example = "Bad Request")
     private final String error;
+
+    @Schema(description = "Уникальный машинно-читаемый код бизнес-ошибки", example = "VALIDATION_FAILED")
+    private final ApiErrorCode errorCode;
 
     @Schema(description = "Сообщение с деталями ошибки", example = "Validation failed")
     private final String message;

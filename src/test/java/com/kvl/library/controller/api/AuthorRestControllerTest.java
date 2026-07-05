@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kvl.library.dto.AuthorRequestDTO;
 import com.kvl.library.dto.AuthorResponseDTO;
 import com.kvl.library.entity.Author;
+import com.kvl.library.exception.ApiErrorCode;
 import com.kvl.library.exception.EntityNotFoundException;
 import com.kvl.library.mapper.AuthorMapper;
 import com.kvl.library.security.JwtRequestFilter;
@@ -36,7 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AuthorRestController.class)
 @ActiveProfiles("test")
-@EnableMethodSecurity // Включаем обработку @PreAuthorize в контексте этого теста
+@EnableMethodSecurity
 @DisplayName("AuthorRestController Unit Tests with Global Exception Handling")
 class AuthorRestControllerTest {
 
@@ -141,8 +142,9 @@ class AuthorRestControllerTest {
 
         mockMvc.perform(get("/api/v1/authors/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ENTITY_NOT_FOUND.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ENTITY_NOT_FOUND.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ENTITY_NOT_FOUND.getValue()))
                 .andExpect(jsonPath("$.message").value("Author not found with id: 99"))
                 .andExpect(jsonPath("$.path").value("/api/v1/authors/99"));
     }
@@ -176,9 +178,11 @@ class AuthorRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequestDTO)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.message").value("Validation failed"))
-                .andExpect(jsonPath("$.validationErrors.name").exists()) // Проверяем просто наличие ошибки для имени
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.message").value(ApiErrorCode.VALIDATION_FAILED.getDefaultMessage()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.VALIDATION_FAILED.getValue()))
+                .andExpect(jsonPath("$.validationErrors.name").exists())
                 .andExpect(jsonPath("$.validationErrors.description").value("Описание должно быть длиной от 2 до 250 символов"));
 
         verify(authorService, never()).createAuthor(any(Author.class));
@@ -193,8 +197,9 @@ class AuthorRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequestDTO)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403))
-                .andExpect(jsonPath("$.error").value("Forbidden"));
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ACCESS_DENIED.getValue()));
     }
 
     @Test
@@ -229,7 +234,8 @@ class AuthorRestControllerTest {
         mockMvc.perform(delete("/api/v1/authors/1")
                         .with(csrf()))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403))
-                .andExpect(jsonPath("$.error").value("Forbidden"));
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ACCESS_DENIED.getValue()));
     }
 }

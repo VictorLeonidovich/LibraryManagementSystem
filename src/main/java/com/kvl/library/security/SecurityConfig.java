@@ -1,5 +1,8 @@
 package com.kvl.library.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kvl.library.dto.error.ApiErrorResponse;
+import com.kvl.library.exception.ApiErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,8 +19,11 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.IpAddressMatcher;
+
+import java.time.LocalDateTime;
 
 /**
  * Главный класс конфигурации безопасности приложения.
@@ -83,6 +89,11 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
+                //Подключаем AccessDeniedHandler
+                .exceptionHandling(exceptions -> exceptions
+                        .accessDeniedHandler(apiAccessDeniedHandler())
+                )
+
                 // Переводим API сессии в режим STATELESS
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -136,6 +147,27 @@ public class SecurityConfig {
                 );
 
         return http.build();
+    }
+
+    @Bean
+    public AccessDeniedHandler apiAccessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            response.setStatus(ApiErrorCode.ACCESS_DENIED.getHttpStatus().value());
+            response.setContentType("application/json;charset=UTF-8");
+
+            ApiErrorResponse errorPayload = ApiErrorResponse.builder()
+                    .timestamp(LocalDateTime.now())
+                    .status(ApiErrorCode.ACCESS_DENIED.getHttpStatus().value())
+                    .error(ApiErrorCode.ACCESS_DENIED.getHttpStatus().getReasonPhrase())
+                    .errorCode(ApiErrorCode.ACCESS_DENIED)
+                    .message(ApiErrorCode.ACCESS_DENIED.getDefaultMessage())
+                    .path(request.getRequestURI())
+                    .build();
+
+            // Пишем наш унифицированный JSON напрямую в HTTP-ответ фильтра
+            new ObjectMapper().registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+                    .writeValue(response.getWriter(), errorPayload);
+        };
     }
 
     @Bean

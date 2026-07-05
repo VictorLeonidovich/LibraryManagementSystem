@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kvl.library.controller.BaseWebContainersTest;
 import com.kvl.library.dto.CategoryRequestDTO;
 import com.kvl.library.entity.Category;
+import com.kvl.library.exception.ApiErrorCode;
 import com.kvl.library.repository.CategoryRepository;
 import com.kvl.library.security.JwtRequestFilter;
 import org.junit.jupiter.api.BeforeEach;
@@ -98,7 +99,9 @@ class CategoryRestControllerContainersTest extends BaseWebContainersTest {
     void getCategoryById_NotFound_ShouldReturn404() throws Exception {
         mockMvc.perform(get("/api/v1/categories/99999"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404));
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ENTITY_NOT_FOUND.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ENTITY_NOT_FOUND.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ENTITY_NOT_FOUND.getValue()));
     }
 
     @Test
@@ -126,7 +129,10 @@ class CategoryRestControllerContainersTest extends BaseWebContainersTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidDto)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.message").value(ApiErrorCode.VALIDATION_FAILED.getDefaultMessage()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.VALIDATION_FAILED.getValue()))
                 .andExpect(jsonPath("$.validationErrors.name").exists());
     }
 
@@ -138,7 +144,10 @@ class CategoryRestControllerContainersTest extends BaseWebContainersTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequestDTO)))
-                .andExpect(status().isForbidden()); // Spring Security блокирует запрос без тела JSON
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ACCESS_DENIED.getValue()));
     }
 
     @Test
@@ -166,7 +175,8 @@ class CategoryRestControllerContainersTest extends BaseWebContainersTest {
 
         // Проверяем удаление сквозным образом — повторный GET запрос обязан вернуть 404
         mockMvc.perform(get("/api/v1/categories/" + savedCategory.getId()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ENTITY_NOT_FOUND.getValue()));
     }
 
     @Test
@@ -174,7 +184,10 @@ class CategoryRestControllerContainersTest extends BaseWebContainersTest {
     @WithMockUser(roles = "USER")
     void deleteCategory_AsUser_ShouldReturnForbidden() throws Exception {
         mockMvc.perform(delete("/api/v1/categories/" + savedCategory.getId()).with(csrf()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ACCESS_DENIED.getValue()));
 
         // Проверяем через репозиторий, что категория осталась нетронутой в PostgreSQL
         assertThat(categoryRepository.existsById(savedCategory.getId())).isTrue();

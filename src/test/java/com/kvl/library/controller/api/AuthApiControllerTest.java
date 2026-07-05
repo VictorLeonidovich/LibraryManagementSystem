@@ -8,6 +8,7 @@ import com.kvl.library.repository.UserRepository;
 import com.kvl.library.security.JwtRequestFilter;
 import com.kvl.library.security.JwtUtils;
 import com.kvl.library.exception.ApiGlobalExceptionHandler;
+import com.kvl.library.exception.ApiErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -125,8 +126,10 @@ class AuthApiControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginDto)))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Unauthorized"))
-                .andExpect(jsonPath("$.message").value("Неверное имя пользователя или пароль"));
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.AUTHENTICATION_FAILED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.AUTHENTICATION_FAILED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.AUTHENTICATION_FAILED.getValue()))
+                .andExpect(jsonPath("$.message").value(ApiErrorCode.AUTHENTICATION_FAILED.getDefaultMessage()));
     }
 
     @Test
@@ -140,7 +143,10 @@ class AuthApiControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginDto)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.VALIDATION_FAILED.getValue()))
+                .andExpect(jsonPath("$.message").value(ApiErrorCode.VALIDATION_FAILED.getDefaultMessage()))
                 .andExpect(jsonPath("$.validationErrors.username").exists())
                 .andExpect(jsonPath("$.validationErrors.password").exists());
     }
@@ -184,7 +190,9 @@ class AuthApiControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerDto)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.BUSINESS_RULE_VIOLATION.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.BUSINESS_RULE_VIOLATION.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.BUSINESS_RULE_VIOLATION.getValue()))
                 .andExpect(jsonPath("$.message").value("Пользователь с таким именем уже существует"));
     }
 
@@ -199,7 +207,10 @@ class AuthApiControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerDto)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.VALIDATION_FAILED.getValue()))
+                .andExpect(jsonPath("$.message").value(ApiErrorCode.VALIDATION_FAILED.getDefaultMessage()))
                 .andExpect(jsonPath("$.validationErrors.username").value("Имя пользователя должно быть от 4 до 20 символов"))
                 .andExpect(jsonPath("$.validationErrors.password").value("Пароль должен содержать минимум 6 символов"));
     }

@@ -7,6 +7,7 @@ import com.kvl.library.entity.Author;
 import com.kvl.library.entity.Book;
 import com.kvl.library.entity.Category;
 import com.kvl.library.entity.Publisher;
+import com.kvl.library.exception.ApiErrorCode;
 import com.kvl.library.exception.EntityNotFoundException;
 import com.kvl.library.mapper.BookMapper;
 import com.kvl.library.security.JwtRequestFilter;
@@ -155,7 +156,9 @@ class BookRestControllerTest {
 
         mockMvc.perform(get("/api/v1/books/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404));
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ENTITY_NOT_FOUND.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ENTITY_NOT_FOUND.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ENTITY_NOT_FOUND.getValue()));
     }
 
     @Test
@@ -185,14 +188,17 @@ class BookRestControllerTest {
     @WithMockUser(roles = "ADMIN")
     void createBook_InvalidDto_ShouldReturnBadRequest() throws Exception {
         BookRequestDTO invalidDto = new BookRequestDTO();
-        invalidDto.setName(""); // Пустое имя
+        invalidDto.setName("");
 
         mockMvc.perform(post("/api/v1/books")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidDto)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.message").value(ApiErrorCode.VALIDATION_FAILED.getDefaultMessage()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.VALIDATION_FAILED.getValue()))
                 .andExpect(jsonPath("$.validationErrors.name").exists());
     }
 
@@ -205,7 +211,9 @@ class BookRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequestDTO)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403));
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ACCESS_DENIED.getValue()));
     }
 
     @Test
@@ -245,6 +253,8 @@ class BookRestControllerTest {
     void deleteBook_AsUser_ShouldReturnForbidden() throws Exception {
         mockMvc.perform(delete("/api/v1/books/1").with(csrf()))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403));
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ACCESS_DENIED.getValue()));
     }
 }

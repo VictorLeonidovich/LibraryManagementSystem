@@ -7,6 +7,7 @@ import com.kvl.library.entity.Author;
 import com.kvl.library.entity.Book;
 import com.kvl.library.entity.Category;
 import com.kvl.library.entity.Publisher;
+import com.kvl.library.exception.ApiErrorCode;
 import com.kvl.library.repository.AuthorRepository;
 import com.kvl.library.repository.BookRepository;
 import com.kvl.library.repository.CategoryRepository;
@@ -135,7 +136,9 @@ class BookRestControllerContainersTest extends BaseWebContainersTest { // 1. Н�
         // Передаем несуществующий ID, чтобы глобальный обработчик исключений перехватил ошибку
         mockMvc.perform(get("/api/v1/books/99999"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404));
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ENTITY_NOT_FOUND.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ENTITY_NOT_FOUND.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ENTITY_NOT_FOUND.getValue()));
     }
 
     @Test
@@ -165,7 +168,10 @@ class BookRestControllerContainersTest extends BaseWebContainersTest { // 1. Н�
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidDto)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.VALIDATION_FAILED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.message").value(ApiErrorCode.VALIDATION_FAILED.getDefaultMessage()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.VALIDATION_FAILED.getValue()))
                 .andExpect(jsonPath("$.validationErrors.name").exists());
     }
 
@@ -177,7 +183,10 @@ class BookRestControllerContainersTest extends BaseWebContainersTest { // 1. Н�
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequestDTO)))
-                .andExpect(status().isForbidden()); // нет jsonPath("$.status"), так как тела у 403 ответа нет
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ACCESS_DENIED.getValue()));
     }
 
     @Test
@@ -209,10 +218,11 @@ class BookRestControllerContainersTest extends BaseWebContainersTest { // 1. Н�
         mockMvc.perform(delete("/api/v1/books/" + savedBook.getId()).with(csrf()))
                 .andExpect(status().isNoContent());
 
-        // 2. Вместо прямого вызова репозитория, проверяем это через HTTP слой
-        // Если книга удалена, повторный GET-запрос обязан вернуть 404 Not Found
+        // 2. Проверяем это через HTTP слой
+        // Если книга удалена, повторный GET-запрос обязан вернуть 404 Not Found со строгим контрактом
         mockMvc.perform(get("/api/v1/books/" + savedBook.getId()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ENTITY_NOT_FOUND.getValue()));
     }
 
     @Test
@@ -220,7 +230,10 @@ class BookRestControllerContainersTest extends BaseWebContainersTest { // 1. Н�
     @WithMockUser(roles = "USER")
     void deleteBook_AsUser_ShouldReturnForbidden() throws Exception {
         mockMvc.perform(delete("/api/v1/books/" + savedBook.getId()).with(csrf()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().value()))
+                .andExpect(jsonPath("$.error").value(ApiErrorCode.ACCESS_DENIED.getHttpStatus().getReasonPhrase()))
+                .andExpect(jsonPath("$.errorCode").value(ApiErrorCode.ACCESS_DENIED.getValue()));
 
         // Книга должна остаться в базе данных PostgreSQL
         assertThat(bookRepository.existsById(savedBook.getId())).isTrue();
