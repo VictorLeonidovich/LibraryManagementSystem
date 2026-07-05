@@ -1,6 +1,5 @@
 package com.kvl.library.service.book;
 
-
 import com.kvl.library.entity.Book;
 import com.kvl.library.exception.EntityNotFoundException;
 import com.kvl.library.repository.BookRepository;
@@ -32,6 +31,9 @@ class BookServiceTest {
 
     @Mock
     private BookRepository bookRepository;
+
+    @Mock
+    private BookPopularityService bookPopularityService;
 
     @InjectMocks
     private BookServiceImpl bookService;
@@ -105,14 +107,17 @@ class BookServiceTest {
     }
 
     @Test
-    @DisplayName("findBookById() should return the expected book when it exists in the database")
-    void findBookById_WhenBookExists_ShouldReturnBook() {
+    @DisplayName("findBookById() should return the expected book and trigger popularity increment")
+    void findBookById_WhenBookExists_ShouldReturnBookAndIncrementView() {
         when(bookRepository.findById(bookId)).thenReturn(Optional.of(testBook));
+        doNothing().when(bookPopularityService).incrementView(testBook.getIsbn());
 
         Book actualBook = bookService.findBookById(bookId);
 
         assertThat(actualBook).isEqualTo(testBook);
         verify(bookRepository, times(1)).findById(bookId);
+        // Проверяем, что метод инкремента просмотров был успешно вызван у нового сервиса
+        verify(bookPopularityService, times(1)).incrementView(testBook.getIsbn());
     }
 
     @Test
@@ -125,6 +130,7 @@ class BookServiceTest {
                 .hasMessageContaining("Book with ID " + bookId + " was not found");
 
         verify(bookRepository, times(1)).findById(bookId);
+        verifyNoInteractions(bookPopularityService);
     }
 
     @Test
@@ -163,14 +169,17 @@ class BookServiceTest {
     }
 
     @Test
-    @DisplayName("deleteBook() should remove the book from the database when it exists")
-    void deleteBook_WhenBookExists_ShouldDeleteBook() {
+    @DisplayName("deleteBook() should remove the book from database and exclude it from popularity chart")
+    void deleteBook_WhenBookExists_ShouldDeleteBookAndRemoveFromPopularity() {
         when(bookRepository.findById(bookId)).thenReturn(Optional.of(testBook));
+        doNothing().when(bookPopularityService).removeBook(testBook.getIsbn());
         doNothing().when(bookRepository).deleteById(bookId);
 
         bookService.deleteBook(bookId);
 
         verify(bookRepository, times(1)).findById(bookId);
+        // Проверяем, что метод исключения из чарта популярности был вызван у нового сервиса
+        verify(bookPopularityService, times(1)).removeBook(testBook.getIsbn());
         verify(bookRepository, times(1)).deleteById(bookId);
     }
 
@@ -184,6 +193,34 @@ class BookServiceTest {
                 .hasMessageContaining("Book with ID " + bookId + " was not found");
 
         verify(bookRepository, times(1)).findById(bookId);
+        verifyNoInteractions(bookPopularityService);
         verify(bookRepository, never()).deleteById(anyLong());
+    }
+
+    @Test
+    @DisplayName("findPopularBookIsbns() should return top list from popularity service when cache misses")
+    void findPopularBookIsbns_WhenPopularityServiceHasData_ShouldReturnTopList() {
+        List<String> expectedIsbns = List.of("978-5-699-12345-6");
+        when(bookPopularityService.getTopBooks(10)).thenReturn(expectedIsbns);
+
+        List<String> actualIsbns = bookService.findPopularBookIsbns();
+
+        assertThat(actualIsbns).containsExactlyElementsOf(expectedIsbns);
+        verify(bookPopularityService, times(1)).getTopBooks(10);
+        verifyNoInteractions(bookRepository);
+    }
+
+    @Test
+    @DisplayName("findPopularBookIsbns() should fallback to repository when popularity service returns empty result")
+    void findPopularBookIsbns_WhenPopularityServiceIsEmpty_ShouldFallbackToRepository() {
+        List<String> fallbackIsbns = List.of("978-5-699-12345-6");
+        when(bookPopularityService.getTopBooks(10)).thenReturn(Collections.emptyList());
+        when(bookRepository.findTop10Isbns(any(PageRequest.class))).thenReturn(fallbackIsbns);
+
+        List<String> actualIsbns = bookService.findPopularBookIsbns();
+
+        assertThat(actualIsbns).containsExactlyElementsOf(fallbackIsbns);
+        verify(bookPopularityService, times(1)).getTopBooks(10);
+        verify(bookRepository, times(1)).findTop10Isbns(any(PageRequest.class));
     }
 }
