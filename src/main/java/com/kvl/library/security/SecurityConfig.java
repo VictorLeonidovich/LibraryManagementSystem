@@ -1,5 +1,6 @@
 package com.kvl.library.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -29,6 +30,10 @@ import org.springframework.security.web.util.matcher.IpAddressMatcher;
 public class SecurityConfig {
 
     private final JwtRequestFilter jwtRequestFilter;
+
+    // Считываем секретный токен для внутренних вызовов из конфигурации приложения
+    @Value("${app.security.internal-token:my-super-secret-internal-rpc-token-2026}")
+    private String internalToken;
 
     /**
      * Конструктор для внедрения зависимостей.
@@ -74,16 +79,19 @@ public class SecurityConfig {
                         .requestMatchers("/publishers/**", "/publisher/**", "/remove-publisher/**", "/update-publisher/**", "/save-publisher/**", "/add-publisher/**").permitAll()
 
                         // =========================================================================
-                        // СЕГМЕНТ 2: ВНУТРЕННИЙ / СЕРВИСНЫЙ ДОСТУП (INTERNAL)
+                        // СЕГМЕНТ 2: ВНУТРЕННИЙ / СЕРВИСНЫЙ ДОСТУП (INTERNAL МНОГОУРОВНЕВАЯ ЗАЩИТА)
                         // =========================================================================
-                        // Безопасный пропуск для внутренних Multipart-запросов отправки почты.
-                        // Ограничиваем доступ через IpAddressMatcher: запросы принимает только с локального хоста (IPv4 и IPv6).
-                        .requestMatchers("/api/v1/internal/**").access((authentication, context) ->
-                                new AuthorizationDecision(
-                                        new IpAddressMatcher("127.0.0.1").matches(context.getRequest()) ||
-                                                new IpAddressMatcher("::1").matches(context.getRequest())
-                                )
-                        )
+                        // Защищаем внутренний RPC-слой: проверяем одновременно и IP-адрес (Loopback),
+                        // и наличие секретного токена в HTTP-заголовке "X-Internal-Token".
+                        .requestMatchers("/api/v1/internal/**").access((authentication, context) -> {
+                            String requestToken = context.getRequest().getHeader("X-Internal-Token");
+                            boolean isTokenValid = internalToken.equals(requestToken);
+
+                            boolean isIpValid = new IpAddressMatcher("127.0.0.1").matches(context.getRequest()) ||
+                                    new IpAddressMatcher("::1").matches(context.getRequest());
+
+                            return new AuthorizationDecision(isTokenValid && isIpValid);
+                        })
 
                         // Метрики Prometheus открыты для сбора внешней системой мониторинга (только GET)
                         .requestMatchers(HttpMethod.GET, "/actuator/prometheus").permitAll()

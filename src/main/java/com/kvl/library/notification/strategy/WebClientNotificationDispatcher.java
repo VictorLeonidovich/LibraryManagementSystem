@@ -2,6 +2,7 @@ package com.kvl.library.notification.strategy;
 
 import com.kvl.library.notification.NotificationDispatcher;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
@@ -21,6 +22,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class WebClientNotificationDispatcher implements NotificationDispatcher {
 
     private final WebClient webClient;
+
+    // Считываем секретный токен для авторизации межсервисных вызовов
+    @Value("${app.security.internal-token:my-super-secret-internal-rpc-token-2026}")
+    private String internalToken;
 
     /**
      * Конструктор инициализирует WebClient, настроенный на локальный хост приложения.
@@ -50,6 +55,8 @@ public class WebClientNotificationDispatcher implements NotificationDispatcher {
         webClient.post()
                 .uri("/api/v1/internal/notifications/email")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
+                // Подставляем секретный токен для прохождения проверки в SecurityConfig
+                .header("X-Internal-Token", internalToken)
                 .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
                 .retrieve()
                 .toBodilessEntity()
