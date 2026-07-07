@@ -35,17 +35,24 @@ jobs:
         with:
           languages: 'java'
 
-      # 4. Запускаем ВСЕ тесты и сборку проекта (Юнит-тесты на H2 и Интеграционные тесты на Testcontainers).
+      # 4. Быстрая проверка жизнеспособности (Smoke Test) перед тяжелой сборкой.
+      # Падает мгновенно (за ~1 минуту), если сломалось ядро системы (авторизация/CRUD/БД).
+      - name: Run Fast Application Smoke Test
+        run: mvn test -Dtest=LibrarySmokeIntegrationTest -Pprod -B
+
+      # 5. Запуск всех остальных тестов проекта. (Юнит-тесты на H2 и Интеграционные тесты на Testcontainers).
       # Активируем Maven-профиль -Pprod, чтобы подтянуть драйвер PostgreSQL.
       # Спринг сам будет переключать профили среды ("test" или "containers") на основе аннотаций @ActiveProfiles в коде.
-      - name: Build and Run All Tests via Maven
-        run: mvn clean verify -Pprod -B
+      # Используем оператор '!' для исключения уже проверенного smoke-теста, чтобы избежать двойной работы.
+      # Убран 'clean', чтобы повторно использовать прогретый Docker-контейнер Testcontainers.
+      - name: Build and Run All Remaining Tests via Maven
+        run: mvn verify -Dtest=!LibrarySmokeIntegrationTest -Pprod -B
 
-      # 5. Выполняем финальный статический анализ кода (обновлен до актуальной версии v4)
+      # 6. Выполняем финальный статический анализ кода (обновлен до актуальной версии v4)
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
 
-      # 6. Проверка JaCoCo: парсит суммарный CSV отчет и валит пайплайн, если покрытие < 70%
+      # 7. Проверка JaCoCo: парсит суммарный CSV отчет и валит пайплайн, если покрытие < 70%
       # Он учтет покрытие и от юнит-тестов, и от контейнерных интеграционных тестов.
       - name: Validate JaCoCo Code Coverage Threshold (70%)
         uses: cicirello/jacoco-badge-generator@v2
@@ -55,7 +62,7 @@ jobs:
           generate-coverage-badge: false
           generate-branches-badge: false
 
-      # 7. Сохраняем отчеты тестирования и уязвимостей в артефакты GitHub (доступны 7 дней)
+      # 8. Сохраняем отчеты тестирования и уязвимостей в артефакты GitHub (доступны 7 дней)
       # Добавлена проверка на существование папки отчетов, чтобы шаг не падал при сетевых таймаутах OWASP.
       - name: Upload Test Coverage and Security Reports
         if: always() # Выполняется в любом случае, чтобы можно было изучить логи упавших тестов
