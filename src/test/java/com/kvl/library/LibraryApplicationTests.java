@@ -6,7 +6,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class LibraryApplicationTests {
+class LibraryApplicationTests extends BaseIntegrationTest {
 
     @Test
     void contextLoads() {
