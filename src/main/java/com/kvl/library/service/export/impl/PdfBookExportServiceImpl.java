@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
@@ -55,13 +56,20 @@ public class PdfBookExportServiceImpl implements BookExportService {
                 fontPath = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"; // Альтернативный путь для Linux/Docker
             }
 
-            // Если в Docker-контейнере нет шрифтов, OpenPDF переключится на встроенный (русский может не отобразиться)
+            // Если в Docker-контейнере нет шрифтов, OpenPDF переключится на встроенный
             BaseFont bf;
             try {
-                bf = BaseFont.createFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                // Загружаем шрифт прямо из JAR-файла (папка src/main/resources/fonts/)
+                var fontUrl = getClass().getClassLoader().getResource("fonts/DejaVuSans.ttf");
+
+                if (fontUrl == null) {
+                    throw new FileNotFoundException("Файл шрифта DejaVuSans.ttf не найден в resources/fonts/");
+                }
+
+                bf = BaseFont.createFont(fontUrl.toString(), BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
             } catch (Exception e) {
-                log.warn("Системный шрифт не найден по путям. Переключаемся на встроенный Helvetica с кодировкой Cp1251.");
-                bf = BaseFont.createFont(BaseFont.HELVETICA, "Cp1251", BaseFont.NOT_EMBEDDED);
+                log.error("Критическая ошибка: не удалось загрузить встроенный в ресурсы шрифт!", e);
+                throw new RuntimeException("Генерация PDF невозможна: отсутствует шрифт", e);
             }
 
             // Создаем стили текста
